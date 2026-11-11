@@ -35,6 +35,9 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
   useEffect(() => { loadMacros().then(setMacros).catch(() => {}); loadUsage().then(setUsage); }, []);
 
   const target = resolveTarget(draft, sel.roomId, sel.openingId);
+  // Xato belgisi faqat muammo hali tuzatilmagan bo'lsa ko'rinadi (tuzatilishi bilan yo'qoladi)
+  const liveProblem = draft.step === 1 ? validateCustomer(draft)?.field : draft.step === 2 ? validateServices(draft, catalog)?.field : undefined;
+  const shownInvalid = invalid && invalid === liveProblem ? invalid : null;
   const step = draft.step;
   const tot = totals(draft);
 
@@ -124,9 +127,9 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
       </View>
 
       {!items ? <Loading /> : step === 1 ? (
-        <StepClient draft={draft} setDraft={setDraft} catalog={catalog} invalid={invalid} onNewClient={newClient} />
+        <StepClient draft={draft} setDraft={setDraft} catalog={catalog} invalid={shownInvalid} onNewClient={newClient} />
       ) : step === 2 ? (
-        <StepServices draft={draft} setDraft={setDraft} catalog={catalog} target={target} macros={macros} usage={usage} invalid={invalid}
+        <StepServices draft={draft} setDraft={setDraft} catalog={catalog} target={target} macros={macros} usage={usage} invalid={shownInvalid}
           setTarget={(roomId, openingId) => setSel({ roomId, openingId })} />
       ) : (
         <StepSummary draft={draft} />

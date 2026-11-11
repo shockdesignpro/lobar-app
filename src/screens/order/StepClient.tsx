@@ -4,7 +4,8 @@ import {
   updateOpening, updateRoomName, type CatalogItem, type Draft,
 } from '../../lib/order/model';
 import { newId } from '../../lib/order/draft';
-import { Card, Select } from '../../ui/components';
+import { Card } from '../../ui/components';
+import { Select } from '../../ui/Select';
 import { DateField } from '../../ui/DateField';
 import { Icon } from '../../ui/Icon';
 import { useTheme } from '../../ui/ThemeContext';

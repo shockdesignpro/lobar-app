@@ -11,7 +11,7 @@ export function DateField({ value, onChange, label }: { value: string; onChange:
     onChange: (e: { target: { value: string } }) => onChange(e.target.value),
     style: {
       boxSizing: 'border-box', width: '100%', minHeight: 46, borderRadius: 10, border: `1px solid ${t.border}`,
-      background: t.input, color: t.text, padding: '0 14px', fontSize: 16, fontFamily: 'inherit', colorScheme: mode,
+      background: t.input, color: t.text, padding: '0 14px', fontSize: 16, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", colorScheme: mode, outline: 'none',
     },
   });
 }

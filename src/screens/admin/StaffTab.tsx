@@ -5,6 +5,7 @@ import { PERM_GROUPS, ROLE_TONE } from '../../lib/permissions';
 import { supabase } from '../../lib/supabase';
 import { Badge, Button, Card, Field, Loading, Note, SectionTitle, SwitchRow, toneColors } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
+import { Select } from '../../ui/Select';
 import { useTheme } from '../../ui/ThemeContext';
 
 type Staff = {
@@ -94,7 +95,6 @@ function StaffRow({ s, me, open, roleName, roles, canManage, admin, onToggle, on
   const [panel, setPanel] = useState<'none' | 'code' | 'perms' | 'archive'>('none');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
 
   const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) => {
     setBusy(true);
@@ -121,26 +121,8 @@ function StaffRow({ s, me, open, roleName, roles, canManage, admin, onToggle, on
       {open && (
         <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: t.border, gap: 10 }}>
           {canManage && (
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: t.muted }}>Rol</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Rol: ${roleName}`} onPress={() => setRoleOpen(!roleOpen)}
-                style={{ minHeight: 42, borderRadius: 8, borderWidth: 1, borderColor: t.border, backgroundColor: t.input, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ flex: 1, fontSize: 15, color: t.text }}>{roleName}</Text>
-                <View style={{ transform: [{ rotate: roleOpen ? '-90deg' : '90deg' }] }}><Icon name="chevron" color={t.muted} size={18} /></View>
-              </Pressable>
-              {roleOpen && (
-                <View style={{ borderWidth: 1, borderColor: t.border, borderRadius: 8, overflow: 'hidden' }}>
-                  {roles.map((r) => (
-                    <Pressable key={r.id} accessibilityRole="menuitem" onPress={() => {
-                      setRoleOpen(false);
-                      if (r.id !== s.role_id) run(() => supabase.from('staff').update({ role_id: r.id }).eq('id', s.id), `Rol "${r.name}" ga o‘zgartirildi.`);
-                    }} style={{ padding: 11, backgroundColor: r.id === s.role_id ? t.tealLight : t.card }}>
-                      <Text style={{ fontSize: 14, color: r.id === s.role_id ? t.teal : t.text, fontWeight: r.id === s.role_id ? '700' : '400' }}>{r.name}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
+            <Select label="Rol" value={s.role_id} options={roles.map((r) => ({ key: r.id, label: r.name }))}
+              onChange={(id) => { const r = roles.find((x) => x.id === id); if (r && r.id !== s.role_id) run(() => supabase.from('staff').update({ role_id: r.id }).eq('id', s.id), `Rol "${r.name}" ga o‘zgartirildi.`); }} />
           )}
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

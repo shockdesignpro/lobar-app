@@ -6,7 +6,8 @@ import {
   SECTION_INITIAL, SECTION_SHORT, SECTION_TITLES, UNITS, useProducts, type Product, type Section,
 } from '../lib/catalog';
 import { calcNumber, fmtN } from '../lib/format';
-import { Button, Card, Field, Intro, Loading, Note, SearchBox, Select, Sheet } from '../ui/components';
+import { Button, Card, Field, Intro, Loading, Note, SearchBox, Sheet } from '../ui/components';
+import { Select } from '../ui/Select';
 import { Icon, type IconName } from '../ui/Icon';
 import { useSnack } from '../ui/SnackContext';
 import { useTheme } from '../ui/ThemeContext';

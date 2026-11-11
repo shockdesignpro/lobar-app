@@ -281,34 +281,6 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
   );
 }
 
-export function Select<K extends string>({ label, value, options, onChange }: {
-  label: string; value: K; options: { key: K; label: string }[]; onChange: (k: K) => void;
-}) {
-  const { t } = useTheme();
-  const [open, setOpen] = useState(false);
-  const current = options.find((o) => o.key === value)?.label ?? value;
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: t.muted }}>{label}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${current}`} accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}
-        style={{ minHeight: 46, borderRadius: 10, borderWidth: 1, borderColor: t.border, backgroundColor: t.input, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={{ flex: 1, fontSize: 16, color: t.text }}>{current}</Text>
-        <View style={{ transform: [{ rotate: open ? '-90deg' : '90deg' }] }}><Icon name="chevron" color={t.muted} size={18} /></View>
-      </Pressable>
-      {open && (
-        <View style={{ borderWidth: 1, borderColor: t.border, borderRadius: 10, overflow: 'hidden' }}>
-          {options.map((o) => (
-            <Pressable key={o.key} accessibilityRole="menuitem" onPress={() => { setOpen(false); onChange(o.key); }}
-              style={{ padding: 12, backgroundColor: o.key === value ? t.tealLight : t.card }}>
-              <Text style={{ fontSize: 15, color: o.key === value ? t.teal : t.text, fontWeight: o.key === value ? '700' : '400' }}>{o.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   const { t } = useTheme();
   return (
