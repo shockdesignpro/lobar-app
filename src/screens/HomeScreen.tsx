@@ -3,13 +3,18 @@ import { Pressable, Text, View } from 'react-native';
 import { can, isAdmin, type Access } from '../lib/auth';
 import { loadDraft } from '../lib/order/draft';
 import type { Draft } from '../lib/order/model';
+import { fmtN } from '../lib/format';
+import { remaining, stage, useOrders } from '../lib/orders';
 import { supabase } from '../lib/supabase';
+import { CompactOrder, CurtainArt, EmptyCard, SectionTitle } from './home/CompactOrder';
 import { Button, Card, Field, Intro, Note } from '../ui/components';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 
-const MONTHS = ['YANVAR', 'FEVRAL', 'MART', 'APREL', 'MAY', 'IYUN', 'IYUL', 'AVGUST', 'SENTABR', 'OKTABR', 'NOYABR', 'DEKABR'];
-const DAYS = ['YAKSHANBA', 'DUSHANBA', 'SESHANBA', 'CHORSHANBA', 'PAYSHANBA', 'JUMA', 'SHANBA'];
+const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+const DAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+
+export type OrdersPreset = { sort?: 'yangi' | 'muddat'; pay?: 'unpaid' };
 
 export function MenuItem({ icon, title, sub, onPress, danger }: { icon: IconName; title: string; sub?: string; onPress: () => void; danger?: boolean }) {
   const { t } = useTheme();
@@ -28,7 +33,10 @@ export function MenuItem({ icon, title, sub, onPress, danger }: { icon: IconName
   );
 }
 
-export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder }: { access: Access; onOpenAdmin: () => void; onSignOut: () => void; onNewOrder: (resume: Draft | null) => void }) {
+export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder, onOpenOrder, onShowOrders }: {
+  access: Access; onOpenAdmin: () => void; onSignOut: () => void; onNewOrder: (resume: Draft | null) => void;
+  onOpenOrder: (id: string) => void; onShowOrders: (preset: OrdersPreset) => void;
+}) {
   const { t } = useTheme();
   const d = new Date();
   const [codeOpen, setCodeOpen] = useState(false);
@@ -48,16 +56,49 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder }: { acc
   const canOrder = can(access, 'orders.edit');
   const [draft, setDraftState] = useState<Draft | null>(null);
   useEffect(() => { if (canOrder) loadDraft().then(setDraftState); }, [canOrder]);
+  const full = can(access, 'orders.view_all');
+  const money = full && can(access, 'prices.view');
+  const { items } = useOrders(full);
+  const orders = items ?? [];
+  const active = orders.filter((o) => stage(o) !== 'O‘rnatildi');
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(23, 59, 59, 999);
+  const due = active.filter((o) => o.ready_date && new Date(`${o.ready_date}T00:00:00`) <= tomorrow)
+    .sort((a, b) => (a.ready_date ?? '').localeCompare(b.ready_date ?? ''));
+  const debt = orders.reduce((n, o) => n + remaining(o), 0);
+  const recent = orders.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 4);
 
   return (
     <>
-      <Intro overline={`${d.getDate()} ${MONTHS[d.getMonth()]} · ${DAYS[d.getDay()]}`} title="Bugungi ishlar" />
+      <Intro overline={`${d.getDate()} ${MONTHS[d.getMonth()]} · ${DAYS[d.getDay()]}`.toUpperCase()} title={full ? 'Bugungi ishlar' : 'Mening ishlarim'} />
 
-      <Card>
-        <Text style={{ fontSize: 13, color: t.muted }}>Xush kelibsiz</Text>
-        <Text style={{ fontSize: 20, fontWeight: '800', color: t.text, marginTop: 2 }}>{access.full_name}</Text>
-        <Text style={{ fontSize: 12, color: t.teal, fontWeight: '700', marginTop: 4 }}>{access.role_name} · {access.login}</Text>
-      </Card>
+      {full && (
+        <>
+          <View style={{ borderRadius: 18, backgroundColor: t.tealDark === '#095c47' ? '#0b6a52' : t.tealMid, padding: 20, overflow: 'hidden' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#ffffff', fontSize: 14 }}>Faol buyurtmalar</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#ffffff' }} />
+                <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '700', letterSpacing: 0.6 }}>ISH JARAYONIDA</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <View style={{ flexShrink: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 12 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 46, fontWeight: '700' }}>{items ? active.length : '…'}</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 13 }}>ta buyurtma</Text>
+                </View>
+                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 10 }}>Har bir buyurtma — e’tiborda.</Text>
+              </View>
+              <CurtainArt color="rgba(255,255,255,0.5)" />
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Metric title="Yaqin muddat" value={String(due.length)} unit="ta" sub="Bugun va ertaga" onPress={() => onShowOrders({ sort: 'muddat' })} />
+            {money && <Metric title="Qarzdorlik" value={fmtN(debt)} unit="so‘m" sub="To‘lov kutilmoqda" onPress={() => onShowOrders({ pay: 'unpaid' })} />}
+          </View>
+        </>
+      )}
 
       {canOrder && (
         <Pressable accessibilityRole="button" onPress={() => onNewOrder(null)}
@@ -76,6 +117,19 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder }: { acc
         <MenuItem icon="file" title="Tugallanmagan buyurtma" sub={`${draft.client.name || 'Ismsiz mijoz'} · davom ettirish`} onPress={() => onNewOrder(draft)} />
       )}
 
+      {full ? (
+        <>
+          <SectionTitle title="Yaqin topshiriladigan" onAll={() => onShowOrders({ sort: 'muddat' })} />
+          {due.length ? due.slice(0, 3).map((o) => <CompactOrder key={o.id} o={o} showMoney={money} onPress={() => onOpenOrder(o.id)} />)
+            : <EmptyCard title="Yaqin muddatli buyurtma yo‘q" text="Bugun va ertaga topshiriladigan buyurtmalar shu yerda ko‘rinadi." />}
+          <SectionTitle title="Oxirgi buyurtmalar" onAll={() => onShowOrders({ sort: 'yangi' })} />
+          {recent.length ? recent.map((o) => <CompactOrder key={o.id} o={o} showMoney={money} onPress={() => onOpenOrder(o.id)} />)
+            : <EmptyCard title="Birinchi buyurtmangizni yarating" text="Mijozni kiriting, o‘lchamlarni belgilang va chekni saqlang." />}
+        </>
+      ) : orders.length ? orders.map((o) => <CompactOrder key={o.id} o={o} showMoney={false} onPress={() => onOpenOrder(o.id)} />)
+        : <EmptyCard title="Hozircha ish yo‘q" text="Sizga buyurtma biriktirilganda u shu yerda ko‘rinadi." />}
+
+      <SectionTitle title="Sozlamalar" />
       <View style={{ gap: 10 }}>
         {showAdmin && <MenuItem icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={onOpenAdmin} />}
         <MenuItem icon="key" title="Kodni almashtirish" sub="Shaxsiy kirish kodingiz" onPress={() => { setCodeOpen(!codeOpen); setMsg(null); }} />
@@ -88,20 +142,25 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder }: { acc
           </Card>
         )}
         {msg && <Note tone={msg.tone}>{msg.text}</Note>}
-        <MenuItem icon="logout" title="Chiqish" danger onPress={onSignOut} />
+        <MenuItem icon="logout" title="Chiqish" sub={`${access.full_name} · ${access.role_name}`} danger onPress={onSignOut} />
       </View>
     </>
   );
 }
 
-export function SoonScreen({ title }: { title: string }) {
+function Metric({ title, value, unit, sub, onPress }: { title: string; value: string; unit: string; sub: string; onPress: () => void }) {
   const { t } = useTheme();
   return (
-    <>
-      <Intro title={title} />
-      <Card>
-        <Text style={{ fontSize: 14, lineHeight: 20, color: t.text }}>Bu bo‘lim 5-bosqichda eski ilovadan ko‘chiriladi.</Text>
-      </Card>
-    </>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}: ${value} ${unit}`} onPress={onPress}
+      style={({ pressed }) => ({ flex: 1, minWidth: 0, padding: 14, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card, gap: 6, opacity: pressed ? 0.85 : 1 })}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, color: t.muted }}>{title}</Text>
+        <View style={{ transform: [{ rotate: '-45deg' }] }}><Icon name="arrowRight" color={t.teal} size={13} strokeWidth={2.4} /></View>
+      </View>
+      <Text style={{ fontSize: value.length > 9 ? 17 : 19, fontWeight: '800', color: t.text }} numberOfLines={1}>
+        {value}<Text style={{ fontSize: 12, fontWeight: '600', color: t.muted }}> {unit}</Text>
+      </Text>
+      <Text style={{ fontSize: 11, color: t.muted }}>{sub}</Text>
+    </Pressable>
   );
 }

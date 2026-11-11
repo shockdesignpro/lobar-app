@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import type { OrdersPreset } from '../HomeScreen';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../../lib/auth';
 import type { Draft } from '../../lib/order/model';
@@ -20,8 +21,9 @@ type PayF = 'all' | 'none' | 'partial' | 'full' | 'unpaid';
 type DateF = 'all' | 'today' | 'week' | 'month';
 type SortF = 'yangi' | 'muddat';
 
-export function OrdersScreen({ access, onEdit, focusId, setFocusId }: {
+export function OrdersScreen({ access, onEdit, focusId, setFocusId, preset }: {
   access: Access; onEdit: (d: Draft) => void; focusId: string | null; setFocusId: (id: string | null) => void;
+  preset?: OrdersPreset | null;
 }) {
   const { t } = useTheme();
   const snack = useSnack();
@@ -29,9 +31,9 @@ export function OrdersScreen({ access, onEdit, focusId, setFocusId }: {
   const money = can(access, 'prices.view') && full;
   const { items, error } = useOrders(full);
   const [q, setQ] = useState('');
-  const [pay, setPay] = useState<PayF>('all');
+  const [pay, setPay] = useState<PayF>(preset?.pay ?? 'all');
   const [dateF, setDateF] = useState<DateF>('all');
-  const [sort, setSort] = useState<SortF>('yangi');
+  const [sort, setSort] = useState<SortF>(preset?.sort ?? 'yangi');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const receipts = useRef(new Map<string, ReceiptImage>());
 
