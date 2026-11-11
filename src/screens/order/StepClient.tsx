@@ -10,6 +10,7 @@ import { DateField } from '../../ui/DateField';
 import { Icon } from '../../ui/Icon';
 import { useTheme } from '../../ui/ThemeContext';
 import { Input, Label, SectionHeader, SoftButton } from './parts';
+import { PhotoEditor } from '../../ui/Photos';
 
 export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
   draft: Draft; setDraft: (fn: (d: Draft) => Draft) => void; catalog: CatalogItem[]; invalid: string | null; onNewClient: () => void;
@@ -129,6 +130,9 @@ export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
 
       <SoftButton label="Xona qo‘shish" style={{ minHeight: 50 }} onPress={() => setDraft((d) => addRoom(d, newId))} />
       <Text style={{ fontSize: 12, color: t.muted, lineHeight: 17 }}>O‘lchamlarni metrda kiriting. Eni tikish va o‘rnatish hisobiga avtomatik o‘tadi.</Text>
+
+      <SectionHeader icon="image" title="Andozalar" />
+      <PhotoEditor photos={draft.photos ?? []} onChange={(fn) => setDraft((d) => ({ ...d, photos: fn(d.photos ?? []) }))} />
     </>
   );
 }

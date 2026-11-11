@@ -47,20 +47,23 @@ export type Draft = {
   client: Client;
   rooms: Room[];
   rows: Row[];
+  /** Andoza rasmlari: path — serverdagi manzil (yuklangan bo'lsa), uri — telefondagi rasm (data:) */
+  photos?: Photo[];
   step: 1 | 2 | 3;
   updatedAt: number;
 };
+export type Photo = { path: string | null; uri: string; caption: string };
 
 export type NewId = () => string;
 
 export const PHONE_PREFIX = '+998';
 
 export function emptyDraft(): Draft {
-  return { orderId: null, client: { name: '', address: '', phone: PHONE_PREFIX, readyDate: '' }, rooms: [], rows: [], step: 1, updatedAt: Date.now() };
+  return { orderId: null, client: { name: '', address: '', phone: PHONE_PREFIX, readyDate: '' }, rooms: [], rows: [], photos: [], step: 1, updatedAt: Date.now() };
 }
 
 export function isDraftEmpty(d: Draft) {
-  return !d.client.name.trim() && !d.client.phone.replace(PHONE_PREFIX, '').trim() && !d.rooms.length && !d.rows.length;
+  return !d.client.name.trim() && !d.client.phone.replace(PHONE_PREFIX, '').trim() && !d.rooms.length && !d.rows.length && !(d.photos ?? []).length;
 }
 
 // ---- Sonlar (utils.js: parseMq, kalkulyator.js: calcNumber) ----

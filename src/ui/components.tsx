@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CONTENT_MAX_WIDTH, radius, type Theme } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { useTheme } from './ThemeContext';
+import { useSync } from '../lib/offline';
 
 // ------------------------------------------------------------------
 // Ekran: yuqori panel + o'rtada aylanadigan kontent + pastki menyu.
@@ -42,6 +43,7 @@ export function Screen({
           <Icon name={mode === 'dark' ? 'sun' : 'moon'} color={t.teal} size={19} />
         </Pressable>
       </View>
+      <SyncBar />
 
       <ScrollView
         ref={scrollRef}
@@ -306,6 +308,22 @@ export function Snack({ text, action, onAction, onHide }: { text: string; action
           </Pressable>
         )}
       </View>
+    </View>
+  );
+}
+
+/** Internet yo'qligi va yuborilishi kutilayotgan o'zgarishlar haqida ingichka chiziq */
+export function SyncBar() {
+  const { t } = useTheme();
+  const { online, pending } = useSync();
+  if (online && !pending) return null;
+  const [bg, fg] = toneColors(t, online ? 'teal' : 'amber');
+  const text = online
+    ? `${pending} ta o‘zgarish serverga yuborilmoqda…`
+    : `Internet yo‘q — ishlashda davom eting, o‘zgarishlar telefonda saqlanadi${pending ? ` (${pending} ta kutmoqda)` : ''}`;
+  return (
+    <View accessibilityRole="alert" style={{ backgroundColor: bg, paddingHorizontal: 16, paddingVertical: 7, alignItems: 'center' }}>
+      <Text style={{ color: fg, fontSize: 12, fontWeight: '700', textAlign: 'center', maxWidth: CONTENT_MAX_WIDTH }}>{text}</Text>
     </View>
   );
 }

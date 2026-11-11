@@ -3,8 +3,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
-  autoLockMinutes, getLastActive, loadAccess, signOut, touchActive, type Access,
+  autoLockMinutes, getLastActive, hasStoredSession, loadAccess, signOut, touchActive, type Access,
 } from './src/lib/auth';
+import { onSyncFailure, setCacheScope, startNetworkWatch } from './src/lib/offline';
+import { RemindersSync } from './src/lib/RemindersSync';
+import { prefetchCatalog } from './src/lib/catalog';
+import { loadMacros } from './src/lib/order/draft';
 import { supabase } from './src/lib/supabase';
 import { AdminScreen } from './src/screens/admin/AdminScreen';
 import { CatalogScreen } from './src/screens/CatalogScreen';
@@ -15,7 +19,7 @@ import { HomeScreen, type OrdersPreset } from './src/screens/HomeScreen';
 import { ReportScreen } from './src/screens/ReportScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { Loading, Screen, type Tab } from './src/ui/components';
-import { SnackProvider } from './src/ui/SnackContext';
+import { SnackProvider, useSnack } from './src/ui/SnackContext';
 import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
 
 export default function App() {
@@ -49,18 +53,23 @@ function Root() {
     try {
       const a = await loadAccess();
       if (!a) { await signOut(); setAccess(null); setPhase('login'); return null; }
+      setCacheScope(a.staff_id);
+      void prefetchCatalog(); void loadMacros().catch(() => {});
       setAccess(a); setPhase('app');
       return a;
     } catch {
-      return accessRef.current; // internet yo'q: oldingi ma'lumot bilan davom etamiz
+      if (!accessRef.current) setPhase('login');
+      return accessRef.current; // vaqtinchalik xato: oldingi ma'lumot bilan davom etamiz
     }
   }, []);
 
   // Ishga tushganda: saqlangan sessiya bormi, qulflash vaqti o'tganmi
   useEffect(() => {
+    startNetworkWatch();
     (async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) { setPhase('login'); return; }
+      // Internetsiz ochilganda token yangilanmay qolishi mumkin — saqlangan sessiya bo'lsa, davom etamiz
+      if (!data.session && !(await hasStoredSession())) { setPhase('login'); return; }
       const a = await refreshAccess();
       if (!a) return;
       const last = await getLastActive();
@@ -72,6 +81,10 @@ function Root() {
     });
     return () => sub.subscription.unsubscribe();
   }, [refreshAccess]);
+
+  // Internetsiz kiritilgan o'zgarish server tomonidan qabul qilinmasa — xabar beramiz
+  const snack = useSnack();
+  useEffect(() => onSyncFailure((m) => snack(m)), [snack]);
 
   // Ruxsat yoki sozlama o'zgarsa, darhol qayta o'qiymiz (realtime)
   useEffect(() => {
@@ -152,6 +165,7 @@ function Root() {
       onStartShouldSetResponderCapture={() => { markActive(); return false; }}
       onMoveShouldSetResponderCapture={() => { markActive(); return false; }}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <RemindersSync access={access} />
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
       ) : route.name === 'admin' ? (

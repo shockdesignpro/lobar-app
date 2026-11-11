@@ -28,7 +28,20 @@
     "scheme": "lobarparda",
     "plugins": [
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#0d7a5f"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Andoza rasmlarini buyurtmaga qo‘shish uchun galereyaga ruxsat kerak.",
+          "cameraPermission": "Andoza rasmini kamerada olish uchun ruxsat kerak."
+        }
+      ]
     ]
   }
 }

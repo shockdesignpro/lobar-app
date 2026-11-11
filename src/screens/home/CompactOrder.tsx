@@ -5,6 +5,7 @@ import { fmtSom } from '../../lib/format';
 import { displayDate, isLate, remaining, stage, type OrderListItem } from '../../lib/orders';
 import { Badge, Card } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
+import { PhotoThumb } from '../../ui/Photos';
 import { useTheme } from '../../ui/ThemeContext';
 
 export function CompactOrder({ o, showDebt, showMoney, onPress }: { o: OrderListItem; showDebt?: boolean; showMoney: boolean; onPress: () => void }) {
@@ -14,14 +15,17 @@ export function CompactOrder({ o, showDebt, showMoney, onPress }: { o: OrderList
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${o.client_name}, ${st}`} onPress={onPress}
       style={({ pressed }) => ({ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card, opacity: pressed ? 0.85 : 1 })}>
-      <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 20, fontWeight: '600', color: t.teal }}>{(o.client_name || 'M').trim().slice(0, 1).toUpperCase()}</Text>
-      </View>
+      {o.photos?.[0] ? <PhotoThumb path={o.photos[0]} size={48} /> : (
+        <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: t.teal }}>{(o.client_name || 'M').trim().slice(0, 1).toUpperCase()}</Text>
+        </View>
+      )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
           <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: t.text }} numberOfLines={1}>{o.client_name}</Text>
           <Badge label={st} tone={late ? 'red' : st === 'Tayyor' || st === 'O‘rnatildi' ? 'teal' : 'amber'} />
         </View>
+        {o.pending && <Text style={{ fontSize: 11, color: t.amber, fontWeight: '700' }}>Internet kutilmoqda</Text>}
         <Text style={{ fontSize: 11, color: t.muted }}>{late ? 'Muddat o‘tgan · ' : 'Topshirish · '}{displayDate(o.ready_date)}</Text>
         {showMoney && <Text style={{ fontSize: 13, fontWeight: '700', color: t.teal }}>{showDebt ? `Qoldiq: ${fmtSom(remaining(o))}` : fmtSom(o.total ?? 0)}</Text>}
       </View>

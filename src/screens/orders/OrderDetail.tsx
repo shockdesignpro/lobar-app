@@ -13,6 +13,7 @@ import { Icon } from '../../ui/Icon';
 import { useSnack } from '../../ui/SnackContext';
 import { useTheme } from '../../ui/ThemeContext';
 import { Input } from '../order/parts';
+import { PhotoGallery } from '../../ui/Photos';
 
 /** Ochilgan buyurtma: xonalar, to'lovlar, ish holati va biriktirilganlar */
 export function OrderDetail({ o, access }: { o: OrderListItem; access: Access }) {
@@ -22,7 +23,9 @@ export function OrderDetail({ o, access }: { o: OrderListItem; access: Access })
   useEffect(() => { loadOrderDraft(o, full).then(setDraft).catch((e) => setErr(e.message)); }, [o.id, full]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View style={{ gap: 10 }}>
-      {err ? <Text style={{ color: 'red' }}>{err}</Text> : !draft ? <Loading /> : <RoomsDetails draft={draft} showMoney={can(access, 'prices.view')} />}
+      {err ? <Text style={{ color: '#d94040', fontSize: 13 }}>{err}</Text> : !draft ? <Loading /> : <RoomsDetails draft={draft} showMoney={can(access, 'prices.view')} />}
+      <PhotoGallery paths={o.photos} captions={o.photo_captions}
+        local={Object.fromEntries((draft?.photos ?? []).filter((p) => p.path && p.uri).map((p) => [p.path as string, p.uri]))} />
       {can(access, 'payments.view') && <PaymentBox o={o} access={access} />}
       <StatusPanel o={o} access={access} />
     </View>
@@ -98,9 +101,10 @@ function PaymentBox({ o, access }: { o: OrderListItem; access: Access }) {
     if (!n || n <= 0) { setBad(true); snack('To‘lov summasini kiriting'); return; }
     if (n > rest) { setBad(true); snack(`Qolgan qarz ${fmtSom(rest)}. Shu summadan oshmagan to‘lov kiriting.`); return; }
     setBusy(true);
-    const { error } = await addPayment(o.id, n);
+    const { error, queued } = await addPayment(o.id, n);
     setBusy(false);
-    if (error) snack(error.message); else { setAmount(''); setBad(false); snack('To‘lov qo‘shildi'); }
+    if (error) snack(error.message);
+    else { setAmount(''); setBad(false); snack(queued ? 'To‘lov telefonda saqlandi — internet qaytganda yuboriladi' : 'To‘lov qo‘shildi'); }
   };
   const remove = async (id: string, sum: number) => {
     if (!(await confirmAsk(`${fmtSom(sum)} miqdoridagi to‘lovni bekor qilamizmi?`, 'Bekor qilish'))) return;

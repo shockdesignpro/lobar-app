@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getLastLogin, signIn } from '../lib/auth';
+import { checkLocalCode } from '../lib/offline';
 import { Button, Field } from '../ui/components';
 import { Icon } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
@@ -30,7 +31,18 @@ export function LoginScreen({ lockedFor, onSuccess, onSwitchUser }: {
     setBusy(true); setError('');
     const r = await signIn(login, code);
     setBusy(false);
-    if (r.ok) { setCode(''); onSuccess(); } else { setError(r.error); setCode(''); }
+    if (r.ok) { setCode(''); onSuccess(); return; }
+    // Internet yo'q: qulflangan ilovani shu telefonda saqlangan kod xeshi bilan ochamiz
+    if (r.network && lockedFor) {
+      setBusy(true);
+      const local = await checkLocalCode(lockedFor.login, code.trim());
+      setBusy(false);
+      if (local === 'ok') { setCode(''); onSuccess(); return; }
+      setError(local === 'wrong' ? 'Kod noto‘g‘ri.' : 'Internet yo‘q. Internet bilan bir marta kirgandan keyin internetsiz ham ochiladi.');
+      setCode('');
+      return;
+    }
+    setError(r.error); setCode('');
   };
 
   return (

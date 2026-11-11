@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STAFF_LOGIN_FUNCTION, SUPABASE_KEY, SUPABASE_URL } from '../config';
+import { clearUserData, isNetworkError, readAccessCopy, rememberCode, saveAccessCopy, setOnline } from './offline';
 import { supabase } from './supabase';
 
 export type Perm = { allowed: boolean; limit: number | null };
@@ -35,7 +36,7 @@ export async function getLastActive() {
 }
 
 /** Login + kodni server funksiyasida tekshiradi va sessiyani o'rnatadi. */
-export async function signIn(login: string, code: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function signIn(login: string, code: string): Promise<{ ok: true } | { ok: false; error: string; network?: boolean }> {
   let res: Response;
   try {
     res = await fetch(`${SUPABASE_URL}/functions/v1/${STAFF_LOGIN_FUNCTION}`, {
@@ -44,7 +45,7 @@ export async function signIn(login: string, code: string): Promise<{ ok: true } 
       body: JSON.stringify({ login: login.trim().toLowerCase(), code: code.trim() }),
     });
   } catch {
-    return { ok: false, error: 'Kirish xizmatiga ulanib bo‘lmadi. Internetni yoki staff-login sozlamasini tekshiring.' };
+    return { ok: false, network: true, error: 'Internet yo‘q — kirish xizmatiga ulanib bo‘lmadi.' };
   }
   let body: { error?: string; access_token?: string; refresh_token?: string } = {};
   try { body = await res.json(); } catch { /* bo'sh javob */ }
@@ -55,16 +56,33 @@ export async function signIn(login: string, code: string): Promise<{ ok: true } 
   const { error } = await supabase.auth.setSession({ access_token: body.access_token, refresh_token: body.refresh_token });
   if (error) return { ok: false, error: error.message };
   try { await AsyncStorage.setItem(LAST_LOGIN, login.trim().toLowerCase()); } catch { /* ignore */ }
+  await rememberCode(login.trim().toLowerCase(), code.trim());
   await touchActive();
   return { ok: true };
 }
 
+/** Ruxsatlar: serverdan; internet yo'q bo'lsa — oxirgi saqlangan nusxa. Kirilmagan bo'lsa null. */
 export async function loadAccess(): Promise<Access | null> {
-  const { data, error } = await supabase.rpc('my_access');
-  if (error) throw error;
-  return (data as Access | null) ?? null;
+  let res: { data: unknown; error: { message: string; code?: string } | null };
+  try { res = await supabase.rpc('my_access'); } catch (e) { res = { data: null, error: { message: e instanceof Error ? e.message : 'network' } }; }
+  if (res.error) {
+    if (isNetworkError(res.error)) { setOnline(false); const copy = await readAccessCopy<Access>(); if (copy) return copy; }
+    throw res.error;
+  }
+  const a = (res.data as Access | null) ?? null;
+  if (a) await saveAccessCopy(a);
+  return a;
+}
+
+/** Saqlangan sessiya bormi (internetsiz ochilganda token muddati o'tgan bo'lsa ham) */
+export async function hasStoredSession() {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    return keys.some((k) => /^sb-.*-auth-token$/.test(k));
+  } catch { return false; }
 }
 
 export async function signOut() {
   await supabase.auth.signOut().catch(() => {});
+  await clearUserData();
 }

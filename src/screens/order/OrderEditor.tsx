@@ -6,7 +6,8 @@ import { fmtSom } from '../../lib/format';
 import { receiptFileName, receiptHtml } from '../../lib/receipt';
 import { supabase } from '../../lib/supabase';
 import { autoDownloadAfterSave, downloadReceipt, makeReceiptImage, shareReceipt, type ReceiptImage } from '../../lib/receiptImage';
-import { clearDraft, loadMacros, loadUsage, saveDraftToServer, useDraft, type Macro } from '../../lib/order/draft';
+import { clearDraft, loadMacros, loadUsage, saveDraftToServer, useDraft, type Macro, type SaveResult } from '../../lib/order/draft';
+import { findOrder, orderNumber } from '../../lib/orders';
 import {
   emptyDraft, isDraftEmpty, resolveTarget, totals, validateCustomer, validateServices, type CatalogItem, type Draft,
 } from '../../lib/order/model';
@@ -32,7 +33,7 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
   const [usage, setUsage] = useState<Record<string, number>>({});
   const [sel, setSel] = useState<{ roomId: string | null | undefined; openingId: string | null | undefined }>({ roomId: undefined, openingId: undefined });
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState<{ no: number; total: number } | null>(null);
+  const [saved, setSaved] = useState<{ no: number | null; total: number; queued: boolean } | null>(null);
   const [receipt, setReceipt] = useState<ReceiptImage | null>(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -65,11 +66,12 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     const p1 = validateCustomer(draft); if (p1) { goStep(1); return; }
     const p2 = validateServices(draft, catalog); if (p2) { goStep(2); return; }
     setSaving(true);
-    let result: { order_no: number; total: number } | null = null;
+    let result: SaveResult;
+    const existing = findOrder(draft.orderId);
     try {
-      result = await saveDraftToServer(draft, catalog);
+      result = await saveDraftToServer(draft, catalog, existing);
       await clearDraft();
-      setSaved({ no: result.order_no, total: Number(result.total) });
+      setSaved({ no: result.order_no, total: Number(result.total), queued: result.queued });
     } catch (e) {
       snack(e instanceof Error ? e.message : 'Saqlanmadi');
       setSaving(false);
@@ -79,13 +81,9 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     // Chek rasmi (eski ilovadagidek darhol tayyorlanadi)
     setReceiptBusy(true);
     try {
-      let now = Date.now();
-      if (draft.orderId) {
-        // Tahrirlangan buyurtma chekida asl yaratilgan sana qoladi (eski ilovadagidek)
-        const { data } = await supabase.from('orders').select('created_at').eq('id', draft.orderId).maybeSingle();
-        if (data?.created_at) now = new Date(data.created_at).getTime();
-      }
-      const img = await makeReceiptImage(receiptHtml(draft, { number: String(result.order_no).padStart(4, '0'), date: now }), receiptFileName(draft.client.name, now));
+      // Tahrirlangan buyurtma chekida asl yaratilgan sana qoladi (eski ilovadagidek)
+      const now = existing ? new Date(existing.created_at).getTime() : Date.now();
+      const img = await makeReceiptImage(receiptHtml(draft, { number: orderNumber(result), date: now }), receiptFileName(draft.client.name, now));
       setReceipt(img);
       if (autoDownloadAfterSave()) { downloadReceipt(img); snack('Chek rasmi saqlandi'); }
     } catch (e) {
@@ -106,8 +104,11 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
           <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="check" color={t.teal} size={28} strokeWidth={2.4} />
           </View>
-          <Text style={{ fontSize: 19, fontWeight: '800', color: t.text, textAlign: 'center' }}>Buyurtma №{String(saved.no).padStart(4, '0')} saqlandi</Text>
+          <Text style={{ fontSize: 19, fontWeight: '800', color: t.text, textAlign: 'center' }}>{saved.no ? `Buyurtma №${String(saved.no).padStart(4, '0')} saqlandi` : 'Buyurtma saqlandi'}</Text>
           <Text style={{ fontSize: 15, color: t.muted }}>Jami: {fmtSom(saved.total)}</Text>
+          {saved.queued && (
+            <Text style={{ fontSize: 13, color: t.amber, textAlign: 'center', lineHeight: 18 }}>Internet yo‘q — buyurtma telefonda saqlandi va internet qaytishi bilan avtomatik yuboriladi. Chek raqami shunda beriladi.</Text>
+          )}
         </Card>
         {receiptBusy && <Loading />}
         {receipt && Platform.OS === 'web' && (

@@ -6,6 +6,10 @@ import type { Draft } from '../lib/order/model';
 import { fmtN } from '../lib/format';
 import { remaining, stage, useOrders } from '../lib/orders';
 import { supabase } from '../lib/supabase';
+import { RemindersSheet } from './RemindersSheet';
+import { ImportSheet } from './ImportSheet';
+import { pendingOps } from '../lib/offline';
+import { confirmAsk } from '../ui/confirm';
 import { CompactOrder, CurtainArt, EmptyCard, SectionTitle } from './home/CompactOrder';
 import { Button, Card, Field, Intro, Note } from '../ui/components';
 import { Icon, type IconName } from '../ui/Icon';
@@ -43,6 +47,8 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder, onOpenO
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [remOpen, setRemOpen] = useState(false);
+  const [impOpen, setImpOpen] = useState(false);
 
   const saveCode = async () => {
     setBusy(true); setMsg(null);
@@ -132,6 +138,8 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder, onOpenO
       <SectionTitle title="Sozlamalar" />
       <View style={{ gap: 10 }}>
         {showAdmin && <MenuItem icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={onOpenAdmin} />}
+        {isAdmin(access) && <MenuItem icon="cloud" title="Eski ilovadan ko‘chirish" sub="Zaxira faylidagi buyurtmalar va to‘lovlar" onPress={() => setImpOpen(true)} />}
+        <MenuItem icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => setRemOpen(true)} />
         <MenuItem icon="key" title="Kodni almashtirish" sub="Shaxsiy kirish kodingiz" onPress={() => { setCodeOpen(!codeOpen); setMsg(null); }} />
         {codeOpen && (
           <Card style={{ gap: 10 }}>
@@ -142,7 +150,13 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder, onOpenO
           </Card>
         )}
         {msg && <Note tone={msg.tone}>{msg.text}</Note>}
-        <MenuItem icon="logout" title="Chiqish" sub={`${access.full_name} · ${access.role_name}`} danger onPress={onSignOut} />
+        {impOpen && <ImportSheet visible onClose={() => setImpOpen(false)} />}
+        <RemindersSheet visible={remOpen} onClose={() => setRemOpen(false)} access={access} />
+        <MenuItem icon="logout" title="Chiqish" sub={`${access.full_name} · ${access.role_name}`} danger onPress={async () => {
+          const n = pendingOps().length;
+          if (n && !(await confirmAsk(`Internetsiz kiritilgan ${n} ta o‘zgarish hali serverga yuborilmagan. Chiqsangiz, ular yo‘qoladi. Baribir chiqamizmi?`, 'Chiqish'))) return;
+          onSignOut();
+        }} />
       </View>
     </>
   );

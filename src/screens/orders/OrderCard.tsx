@@ -3,6 +3,7 @@ import { fmtSom } from '../../lib/format';
 import { displayDate, payStatus, remaining, stage, type OrderListItem } from '../../lib/orders';
 import { Badge } from '../../ui/components';
 import { Icon, type IconName } from '../../ui/Icon';
+import { PhotoThumb } from '../../ui/Photos';
 import { useTheme } from '../../ui/ThemeContext';
 
 export function MiniAction({ icon, label, onPress, danger }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
@@ -22,15 +23,18 @@ export function OrderHead({ o, onOpen, actions, showMoney }: { o: OrderListItem;
   const ps = payStatus(o);
   const head = (
     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 20, fontWeight: '600', color: t.teal }}>{(o.client_name || 'M').trim().slice(0, 1).toUpperCase()}</Text>
-      </View>
+      {o.photos[0] ? <PhotoThumb path={o.photos[0]} size={44} /> : (
+        <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: t.teal }}>{(o.client_name || 'M').trim().slice(0, 1).toUpperCase()}</Text>
+        </View>
+      )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.text }} numberOfLines={2}>{o.client_name}</Text>
         {!!o.client_phone && <Text style={{ fontSize: 12, color: t.muted }}>{o.client_phone}</Text>}
         <Text style={{ fontSize: 11, color: t.muted }}>Topshirish: {displayDate(o.ready_date)}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
           <Badge label={st} tone={st === 'Tayyor' || st === 'O‘rnatildi' ? 'teal' : 'teal'} />
+          {o.pending && <Badge label="Internet kutilmoqda" tone="grey" />}
           {showMoney && <Badge label={ps === 'full' ? 'To‘langan' : ps === 'partial' ? 'Qisman to‘langan' : 'To‘lanmagan'} tone={ps === 'full' ? 'teal' : 'amber'} />}
         </View>
       </View>

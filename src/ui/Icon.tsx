@@ -4,7 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'back' | 'moon' | 'sun' | 'lock' | 'shield' | 'plus' | 'home' | 'clock' | 'scissors'
   | 'receipt' | 'chevron' | 'users' | 'logout' | 'key' | 'search' | 'edit' | 'trash' | 'download' | 'upload'
-  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox';
+  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud';
 
 export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: IconName; size?: number; color: string; strokeWidth?: number }) {
   const p = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -39,6 +39,11 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: Icon
       {name === 'arrowRight' && (<><Path d="M5 12h14" {...p} /><Path d="M12 5l7 7-7 7" {...p} /></>)}
       {name === 'check' && <Path d="M20 6 9 17l-5-5" {...p} />}
       {name === 'share' && (<><Circle cx="18" cy="5" r="3" {...p} /><Circle cx="6" cy="12" r="3" {...p} /><Circle cx="18" cy="19" r="3" {...p} /><Path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" {...p} /></>)}
+      {name === 'image' && (<><Rect x="3" y="3" width="18" height="18" rx="2" {...p} /><Circle cx="8.5" cy="8.5" r="1.5" {...p} /><Path d="M21 15l-5-5L5 21" {...p} /></>)}
+      {name === 'camera' && (<><Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" {...p} /><Circle cx="12" cy="13" r="4" {...p} /></>)}
+      {name === 'bell' && (<><Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" {...p} /><Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" {...p} /></>)}
+      {name === 'calendar' && (<><Rect x="3" y="4" width="18" height="18" rx="2" {...p} /><Path d="M16 2v4M8 2v4M3 10h18" {...p} /></>)}
+      {name === 'cloud' && (<><Path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z" {...p} /><Path d="M12 12v6M9 15l3-3 3 3" {...p} /></>)}
       {name === 'inbox' && (<><Path d="M22 12h-6l-2 3h-4l-2-3H2" {...p} /><Path d="M5.5 5h13l3.5 7v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-7Z" {...p} /></>)}
       {name === 'key' && (<><Circle cx="7.5" cy="15.5" r="4.5" {...p} /><Path d="M10.7 12.3 21 2M17 6l3 3M14 9l2 2" {...p} /></>)}
     </Svg>

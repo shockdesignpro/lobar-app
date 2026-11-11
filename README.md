@@ -12,6 +12,7 @@ Fayllarni tartib bilan, har birini bir marta ishga tushiring:
 3. `supabase/migrations/0003_fix_code_check.sql` — kod almashtirish tekshiruvi
 4. `supabase/migrations/0004_code_letters.sql` — kodda harflar ham bo'lishi mumkin
 5. `supabase/migrations/0005_save_order.sql` — buyurtmani saqlash
+6. `supabase/migrations/0006_offline_photos.sql` — internetsiz ishlash, andoza rasmlari, eski ma'lumotlarni ko'chirish
 
 ## 2. Kirish xizmati (staff-login)
 

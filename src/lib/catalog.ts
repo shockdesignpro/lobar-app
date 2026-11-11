@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { byName } from './format';
+import { cacheGet, cacheSet, isNetworkError, setOnline } from './offline';
 import { supabase } from './supabase';
 
 export type Section = 'mahsulot' | 'tikish' | 'ustanovka';
@@ -25,20 +26,33 @@ export function useProducts() {
     const { data, error: e } = await supabase
       .from('products').select('id, legacy_id, name, section, price, unit, sort_order')
       .is('deleted_at', null);
-    if (e) { setError(e.message); setItems((prev) => prev ?? []); return; }
+    if (e) {
+      // Internet yo'q: oxirgi saqlangan katalog bilan ishlaymiz
+      if (isNetworkError(e)) { setOnline(false); const c = await cacheGet<Product[]>('products'); setItems((prev) => prev ?? c ?? []); return; }
+      setError(e.message); setItems((prev) => prev ?? []); return;
+    }
     setError('');
-    setItems(((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byName));
+    const list = ((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byName);
+    void cacheSet('products', list);
+    setItems(list);
   }, []);
 
   useEffect(() => {
+    cacheGet<Product[]>('products').then((c) => { if (c) setItems((prev) => prev ?? c); });
     load();
-    const ch = supabase.channel('catalog-products')
+    const ch = supabase.channel(`catalog-products-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [load]);
 
   return { items, error, reload: load };
+}
+
+/** Internetsiz ishlash uchun katalogni oldindan telefonga saqlab qo'yadi */
+export async function prefetchCatalog() {
+  const { data, error } = await supabase.from('products').select('id, legacy_id, name, section, price, unit, sort_order').is('deleted_at', null);
+  if (!error) await cacheSet('products', ((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byName));
 }
 
 export async function saveProduct(p: { id?: string; name: string; section: Section; price: number; unit: string }) {

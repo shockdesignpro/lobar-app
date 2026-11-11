@@ -2,7 +2,8 @@
 // Buyurtmalar: ro'yxat, tafsilot, to'lovlar, ish bosqichlari, biriktirish.
 // Eski tarix.js / mobile.js mantiqi (holat, to'lov holati, yaqin kunlar) shu yerda.
 // ============================================================
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { cacheGet, cacheSet, isNetworkError, isOnline, onOutboxChange, onSynced, pendingOps, perform, setOnline, type Op, type Queued } from './offline';
 import { emptyDraft, type Draft, type Row, type Section } from './order/model';
 import { supabase } from './supabase';
 
@@ -31,6 +32,9 @@ export type OrderListItem = {
   total: number | null; // ishchilar uchun null (narx ko'rinmaydi)
   client_name: string; client_phone: string | null; client_address: string | null;
   payments: Payment[]; steps: Partial<Record<StepKey, boolean>>; assignees: Assignee[];
+  photos: string[]; photo_captions: string[];
+  /** internet qaytishini kutayotgan o'zgarishi bor */
+  pending?: boolean;
 };
 
 export const orderNumber = (o: { order_no: number | null }) => (o.order_no ? String(o.order_no).padStart(4, '0') : '—');
@@ -73,83 +77,205 @@ export function createdFrom(f: 'all' | 'today' | 'week' | 'month'): number | nul
 
 type DbOrder = {
   id: string; order_no: number | null; order_year: number | null; created_at: string; ready_date: string | null; total: number | string;
+  photos: string[] | null; photo_captions: string[] | null;
   clients: { name: string; phone: string | null; address: string | null } | null;
   payments: { id: string; amount: number | string; paid_at: string; cancelled_at: string | null; deleted_at: string | null }[];
   order_steps: { step_key: StepKey; done: boolean; deleted_at: string | null }[];
   order_assignees: { staff_id: string; task: 'tikish' | 'ornatish'; deleted_at: string | null }[];
 };
 
-/** Buyurtmalar ro'yxati, istalgan qurilmadagi o'zgarish bilan darhol yangilanadi. */
-export function useOrders(fullAccess: boolean) {
-  const [items, setItems] = useState<OrderListItem[] | null>(null);
-  const [error, setError] = useState('');
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+// ---------------- Buyurtmalar ombori ----------------
+// Bitta umumiy ro'yxat: barcha ekranlar shu yerdan oladi. Avval telefondagi nusxa ko'rsatiladi,
+// keyin serverdan yangisi; navbatdagi (internetsiz kiritilgan) o'zgarishlar ustidan qo'shiladi.
+type Store = { full: boolean | null; server: OrderListItem[] | null; error: string; refs: number };
+const store: Store = { full: null, server: null, error: '', refs: 0 };
+const listeners = new Set<() => void>();
+let view: OrderListItem[] | null = null;
+let channel: ReturnType<typeof supabase.channel> | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const load = useCallback(async () => {
-    if (fullAccess) {
-      const { data, error: e } = await supabase.from('orders')
-        .select('id, order_no, order_year, created_at, ready_date, total, clients(name, phone, address), payments(id, amount, paid_at, cancelled_at, deleted_at), order_steps(step_key, done, deleted_at), order_assignees(staff_id, task, deleted_at)')
-        .is('deleted_at', null).order('created_at', { ascending: false });
-      if (e) { setError(e.message); setItems((p) => p ?? []); return; }
-      setError('');
-      setItems(((data ?? []) as unknown as DbOrder[]).map((o) => ({
-        id: o.id, order_no: o.order_no, order_year: o.order_year, created_at: o.created_at, ready_date: o.ready_date, total: Number(o.total),
-        client_name: o.clients?.name ?? 'Mijoz', client_phone: o.clients?.phone ?? null, client_address: o.clients?.address ?? null,
-        payments: o.payments.filter((p) => !p.cancelled_at && !p.deleted_at).map((p) => ({ id: p.id, amount: Number(p.amount), paid_at: p.paid_at })).sort((a, b) => a.paid_at.localeCompare(b.paid_at)),
-        steps: Object.fromEntries(o.order_steps.filter((s) => !s.deleted_at).map((s) => [s.step_key, s.done])),
-        assignees: o.order_assignees.filter((a) => !a.deleted_at).map((a) => ({ staff_id: a.staff_id, task: a.task })),
-      })));
-    } else {
-      // Tikuvchi va usta: faqat biriktirilgan buyurtmalar, narxsiz
-      const [w, st, as] = await Promise.all([
-        supabase.from('work_orders').select('id, order_no, order_year, ready_date, client_name, client_phone, client_address, updated_at'),
-        supabase.from('order_steps').select('order_id, step_key, done').is('deleted_at', null),
-        supabase.from('order_assignees').select('order_id, staff_id, task').is('deleted_at', null),
-      ]);
-      if (w.error) { setError(w.error.message); setItems((p) => p ?? []); return; }
-      setError('');
-      type W = { id: string; order_no: number | null; order_year: number | null; ready_date: string | null; client_name: string; client_phone: string | null; client_address: string | null; updated_at: string };
-      const steps = (st.data ?? []) as { order_id: string; step_key: StepKey; done: boolean }[];
-      const asg = (as.data ?? []) as { order_id: string; staff_id: string; task: 'tikish' | 'ornatish' }[];
-      setItems(((w.data ?? []) as W[]).map((o) => ({
-        id: o.id, order_no: o.order_no, order_year: o.order_year, created_at: o.updated_at, ready_date: o.ready_date, total: null,
-        client_name: o.client_name ?? 'Mijoz', client_phone: o.client_phone, client_address: o.client_address, payments: [],
-        steps: Object.fromEntries(steps.filter((s) => s.order_id === o.id).map((s) => [s.step_key, s.done])),
-        assignees: asg.filter((a) => a.order_id === o.id).map((a) => ({ staff_id: a.staff_id, task: a.task })),
-      })).sort((a, b) => (a.ready_date ?? '9999').localeCompare(b.ready_date ?? '9999')));
-    }
-  }, [fullAccess]);
-
-  useEffect(() => {
-    load();
-    const reload = () => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(load, 250); };
-    const ch = supabase.channel('orders-list');
-    for (const table of ['orders', 'payments', 'order_steps', 'order_assignees', 'clients']) {
-      ch.on('postgres_changes', { event: '*', schema: 'public', table }, reload);
-    }
-    ch.subscribe();
-    return () => { supabase.removeChannel(ch); if (timer.current) clearTimeout(timer.current); };
-  }, [load]);
-
-  return { items, error, reload: load };
+function recompute() {
+  view = store.server ? applyPending(store.server, pendingOps()) : null;
+  listeners.forEach((f) => f());
 }
 
-// ---- Amallar ----
-export const addPayment = (orderId: string, amount: number) => supabase.from('payments').insert({ order_id: orderId, amount });
-export const cancelPayment = (id: string) => supabase.from('payments').update({ cancelled_at: new Date().toISOString() }).eq('id', id);
-export const setStep = (orderId: string, step: StepKey, done: boolean) =>
-  supabase.from('order_steps').upsert({ order_id: orderId, step_key: step, done, deleted_at: null }, { onConflict: 'order_id,step_key' });
-export const archiveOrder = (id: string) => supabase.from('orders').update({ deleted_at: new Date().toISOString() }).eq('id', id);
-export const restoreOrder = (id: string) => supabase.from('orders').update({ deleted_at: null }).eq('id', id);
+/** Navbatdagi o'zgarishlarni ro'yxat ustiga qo'yadi (ekranda darhol ko'rinishi uchun) */
+export function applyPending(list: OrderListItem[], ops: Queued[] | Op[]): OrderListItem[] {
+  let out = list.map((o) => ({ ...o }));
+  const mark = (id: string, fn: (o: OrderListItem) => OrderListItem) => { out = out.map((o) => (o.id === id ? { ...fn(o), pending: true } : o)); };
+  for (const op of ops) {
+    switch (op.kind) {
+      case 'save_order': {
+        const it = op.item as OrderListItem;
+        if (out.some((o) => o.id === it.id)) {
+          mark(it.id, (o) => ({ ...o, client_name: it.client_name, client_phone: it.client_phone, client_address: it.client_address,
+            ready_date: it.ready_date, total: it.total, photos: it.photos, photo_captions: it.photo_captions }));
+        } else out = [{ ...it, pending: true }, ...out];
+        break;
+      }
+      case 'payment_add':
+        mark(op.order_id, (o) => (o.payments.some((p) => p.id === op.id) ? o : { ...o, payments: [...o.payments, { id: op.id, amount: op.amount, paid_at: op.paid_at }] }));
+        break;
+      case 'payment_cancel':
+        out = out.map((o) => (o.payments.some((p) => p.id === op.id) ? { ...o, payments: o.payments.filter((p) => p.id !== op.id), pending: true } : o));
+        break;
+      case 'step':
+        mark(op.order_id, (o) => ({ ...o, steps: { ...o.steps, [op.step]: op.done } }));
+        break;
+      case 'archive':
+        if (op.on) out = out.filter((o) => o.id !== op.order_id);
+        break;
+      case 'assign':
+        mark(op.order_id, (o) => ({
+          ...o, assignees: op.on
+            ? [...o.assignees.filter((a) => !(a.staff_id === op.staff_id && a.task === op.task)), { staff_id: op.staff_id, task: op.task }]
+            : o.assignees.filter((a) => !(a.staff_id === op.staff_id && a.task === op.task)),
+        }));
+        break;
+    }
+  }
+  return out;
+}
 
-export async function setAssignee(orderId: string, staffId: string, task: 'tikish' | 'ornatish', on: boolean) {
-  if (on) return supabase.from('order_assignees').upsert({ order_id: orderId, staff_id: staffId, task, deleted_at: null }, { onConflict: 'order_id,staff_id,task' });
-  return supabase.from('order_assignees').update({ deleted_at: new Date().toISOString() }).eq('order_id', orderId).eq('staff_id', staffId).eq('task', task);
+const cacheName = (full: boolean) => (full ? 'orders.all' : 'orders.work');
+
+async function fetchOrders(full: boolean): Promise<OrderListItem[]> {
+  if (full) {
+    const { data, error: e } = await supabase.from('orders')
+      .select('id, order_no, order_year, created_at, ready_date, total, photos, photo_captions, clients(name, phone, address), payments(id, amount, paid_at, cancelled_at, deleted_at), order_steps(step_key, done, deleted_at), order_assignees(staff_id, task, deleted_at)')
+      .is('deleted_at', null).order('created_at', { ascending: false });
+    if (e) throw e;
+    return ((data ?? []) as unknown as DbOrder[]).map((o) => ({
+      id: o.id, order_no: o.order_no, order_year: o.order_year, created_at: o.created_at, ready_date: o.ready_date, total: Number(o.total),
+      client_name: o.clients?.name ?? 'Mijoz', client_phone: o.clients?.phone ?? null, client_address: o.clients?.address ?? null,
+      payments: o.payments.filter((p) => !p.cancelled_at && !p.deleted_at).map((p) => ({ id: p.id, amount: Number(p.amount), paid_at: p.paid_at })).sort((a, b) => a.paid_at.localeCompare(b.paid_at)),
+      steps: Object.fromEntries(o.order_steps.filter((s) => !s.deleted_at).map((s) => [s.step_key, s.done])),
+      assignees: o.order_assignees.filter((a) => !a.deleted_at).map((a) => ({ staff_id: a.staff_id, task: a.task })),
+      photos: o.photos ?? [], photo_captions: o.photo_captions ?? [],
+    }));
+  }
+  // Tikuvchi va usta: faqat biriktirilgan buyurtmalar, narxsiz
+  const [w, st, as] = await Promise.all([
+    supabase.from('work_orders').select('id, order_no, order_year, ready_date, client_name, client_phone, client_address, updated_at, photos, photo_captions'),
+    supabase.from('order_steps').select('order_id, step_key, done').is('deleted_at', null),
+    supabase.from('order_assignees').select('order_id, staff_id, task').is('deleted_at', null),
+  ]);
+  if (w.error) throw w.error;
+  type W = { id: string; order_no: number | null; order_year: number | null; ready_date: string | null; client_name: string; client_phone: string | null; client_address: string | null; updated_at: string; photos: string[] | null; photo_captions: string[] | null };
+  const steps = (st.data ?? []) as { order_id: string; step_key: StepKey; done: boolean }[];
+  const asg = (as.data ?? []) as { order_id: string; staff_id: string; task: 'tikish' | 'ornatish' }[];
+  return ((w.data ?? []) as W[]).map((o) => ({
+    id: o.id, order_no: o.order_no, order_year: o.order_year, created_at: o.updated_at, ready_date: o.ready_date, total: null,
+    client_name: o.client_name ?? 'Mijoz', client_phone: o.client_phone, client_address: o.client_address, payments: [],
+    steps: Object.fromEntries(steps.filter((s) => s.order_id === o.id).map((s) => [s.step_key, s.done])),
+    assignees: asg.filter((a) => a.order_id === o.id).map((a) => ({ staff_id: a.staff_id, task: a.task })),
+    photos: o.photos ?? [], photo_captions: o.photo_captions ?? [],
+  })).sort((a, b) => (a.ready_date ?? '9999').localeCompare(b.ready_date ?? '9999'));
+}
+
+export async function reloadOrders() {
+  const full = store.full;
+  if (full == null) return;
+  try {
+    const list = await fetchOrders(full);
+    if (store.full !== full) return;
+    store.server = list; store.error = '';
+    void cacheSet(cacheName(full), list);
+    void prefetchDrafts(list, full);
+  } catch (e) {
+    if (isNetworkError(e)) { setOnline(false); store.error = ''; }
+    else store.error = e instanceof Error ? e.message : (e as { message?: string }).message ?? 'Xato';
+    if (!store.server) store.server = [];
+  }
+  recompute();
+}
+// Faol buyurtmalar tarkibini (xonalar, o'lchamlar) oldindan telefonga saqlaymiz —
+// usta internetsiz joyda ham o'lchamlarni ko'ra olishi uchun. Har buyurtma sessiyada bir marta.
+const prefetched = new Set<string>();
+async function prefetchDrafts(list: OrderListItem[], full: boolean) {
+  const todo = list.filter((o) => stage(o) !== 'O‘rnatildi' && !prefetched.has(o.id)).slice(0, 40);
+  for (const o of todo) {
+    prefetched.add(o.id);
+    try { await cacheSet(`draft.${o.id}`, await fetchOrderDraft(o, full)); } catch (e) { if (isNetworkError(e)) { prefetched.delete(o.id); return; } }
+  }
+}
+
+const scheduleReload = () => { if (reloadTimer) clearTimeout(reloadTimer); reloadTimer = setTimeout(() => { void reloadOrders(); }, 250); };
+
+onOutboxChange(recompute);
+onSynced(() => { void reloadOrders(); });
+
+function attach(full: boolean) {
+  store.refs++;
+  if (store.full !== full) {
+    store.full = full; store.server = null; store.error = ''; view = null;
+    cacheGet<OrderListItem[]>(cacheName(full)).then((c) => { if (c && store.full === full && !store.server) { store.server = c; recompute(); } });
+    void reloadOrders();
+  }
+  if (!channel) {
+    channel = supabase.channel('orders-list');
+    for (const table of ['orders', 'payments', 'order_steps', 'order_assignees', 'clients']) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, scheduleReload);
+    }
+    channel.subscribe();
+  }
+}
+function detach() {
+  store.refs--;
+  if (store.refs <= 0 && channel) { supabase.removeChannel(channel); channel = null; }
+}
+
+/** Ro'yxatdagi buyurtma (tahrirlashda raqam, sana va to'lovlarni saqlab qolish uchun) */
+export const findOrder = (id: string | null) => (id ? view?.find((o) => o.id === id) ?? null : null);
+
+/** Buyurtmalar ro'yxati, istalgan qurilmadagi o'zgarish bilan darhol yangilanadi; internetsiz ham ishlaydi. */
+export function useOrders(fullAccess: boolean) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force((n) => n + 1);
+    listeners.add(f);
+    attach(fullAccess);
+    if (store.refs > 1) void reloadOrders();
+    return () => { listeners.delete(f); detach(); };
+  }, [fullAccess]);
+  return { items: store.full === fullAccess ? view : null, error: store.error, reload: reloadOrders };
+}
+
+// ---- Amallar (internet bo'lmasa navbatga qo'yiladi) ----
+type ActResult = { error: { message: string } | null; queued?: boolean };
+async function act(op: Op, label: string): Promise<ActResult> {
+  try {
+    const r = await perform(op, label);
+    if (!r.queued) scheduleReload();
+    return { error: null, queued: r.queued };
+  } catch (e) {
+    return { error: { message: e instanceof Error ? e.message : 'Xato' } };
+  }
+}
+const orderLabel = (id: string) => store.server?.find((o) => o.id === id)?.client_name ?? view?.find((o) => o.id === id)?.client_name ?? 'Buyurtma';
+
+export const addPayment = (orderId: string, amount: number, id: string = randomId()) =>
+  act({ kind: 'payment_add', id, order_id: orderId, amount, paid_at: new Date().toISOString() }, `${orderLabel(orderId)}: to‘lov`);
+export const cancelPayment = (id: string) => act({ kind: 'payment_cancel', id, at: new Date().toISOString() }, 'To‘lovni bekor qilish');
+export const setStep = (orderId: string, step: StepKey, done: boolean) =>
+  act({ kind: 'step', order_id: orderId, step, done }, `${orderLabel(orderId)}: holat`);
+export const archiveOrder = (id: string) => act({ kind: 'archive', order_id: id, on: true }, `${orderLabel(id)}: o‘chirish`);
+export const restoreOrder = (id: string) => act({ kind: 'archive', order_id: id, on: false }, 'Tiklash');
+export const setAssignee = (orderId: string, staffId: string, task: 'tikish' | 'ornatish', on: boolean) =>
+  act({ kind: 'assign', order_id: orderId, staff_id: staffId, task, on }, `${orderLabel(orderId)}: biriktirish`);
+
+function randomId() {
+  // expo-crypto bilan bir xil format (UUID v4)
+  const g = globalThis.crypto as Crypto | undefined;
+  if (g?.randomUUID) return g.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); });
 }
 
 export type StaffLite = { id: string; full_name: string; role_id: string };
 export async function loadWorkers(): Promise<StaffLite[]> {
-  const { data } = await supabase.from('staff').select('id, full_name, role_id').in('role_id', ['tikuvchi', 'usta']).eq('is_active', true).is('deleted_at', null).order('full_name');
+  const { data, error } = await supabase.from('staff').select('id, full_name, role_id').in('role_id', ['tikuvchi', 'usta']).eq('is_active', true).is('deleted_at', null).order('full_name');
+  if (error) return (await cacheGet<StaffLite[]>('workers')) ?? [];
+  void cacheSet('workers', data);
   return (data as StaffLite[] | null) ?? [];
 }
 
@@ -159,18 +285,38 @@ type DbItem = {
   unit_price?: number | string; room_id: string | null; opening_id: string | null; linked_from_width?: boolean; auto_sync?: boolean; sort_order?: number;
 };
 export async function loadOrderDraft(o: OrderListItem, fullAccess: boolean): Promise<Draft> {
+  // Navbatda shu buyurtmaning saqlanishi kutayotgan bo'lsa — eng yangi nusxa o'sha
+  const queued = [...pendingOps()].reverse().find((q) => q.kind === 'save_order' && (q.item as OrderListItem).id === o.id);
+  if (queued && queued.kind === 'save_order') return queued.draft as Draft;
+  // Internet yo'qligi aniq bo'lsa, kutib o'tirmasdan telefondagi nusxani ko'rsatamiz
+  if (!isOnline()) { const c = await cacheGet<Draft>(`draft.${o.id}`); if (c) return c; }
+  try {
+    const d = await fetchOrderDraft(o, fullAccess);
+    void cacheSet(`draft.${o.id}`, d);
+    return d;
+  } catch (e) {
+    if (!isNetworkError(e)) throw e;
+    setOnline(false);
+    const c = await cacheGet<Draft>(`draft.${o.id}`);
+    if (c) return c;
+    throw new Error('Internet yo‘q — bu buyurtma tarkibi hali telefonga yuklanmagan.');
+  }
+}
+
+async function fetchOrderDraft(o: OrderListItem, fullAccess: boolean): Promise<Draft> {
   const [rooms, items] = await Promise.all([
     supabase.from('rooms').select('id, name, sort_order, openings(id, kind, height, width, rail_type, color, auto_off, sort_order, deleted_at)').eq('order_id', o.id).is('deleted_at', null).order('sort_order'),
     fullAccess
       ? supabase.from('order_items').select('id, section, product_id, product_name, unit, quantity, unit_price, room_id, opening_id, linked_from_width, auto_sync, sort_order').eq('order_id', o.id).is('deleted_at', null).order('sort_order')
       : supabase.from('work_items').select('id, section, product_name, unit, quantity, room_id, opening_id').eq('order_id', o.id),
   ]);
-  if (rooms.error) throw new Error(rooms.error.message);
-  if (items.error) throw new Error(items.error.message);
+  if (rooms.error) throw rooms.error;
+  if (items.error) throw items.error;
   type DbRoom = { id: string; name: string; openings: { id: string; kind: 'deraza' | 'eshik'; height: string | null; width: string | null; rail_type: string | null; color: string | null; auto_off: Partial<Record<Section, boolean>> | null; sort_order: number; deleted_at: string | null }[] };
   const d = emptyDraft();
   d.orderId = o.id;
   d.client = { name: o.client_name, address: o.client_address ?? '', phone: o.client_phone ?? '+998', readyDate: o.ready_date ?? '' };
+  d.photos = o.photos.map((path, i) => ({ path, uri: '', caption: o.photo_captions[i] ?? '' }));
   d.rooms = ((rooms.data ?? []) as DbRoom[]).map((r) => ({
     id: r.id, name: r.name,
     openings: r.openings.filter((x) => !x.deleted_at).sort((a, b) => a.sort_order - b.sort_order).map((x) => ({
