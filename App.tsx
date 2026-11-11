@@ -7,16 +7,20 @@ import {
 } from './src/lib/auth';
 import { supabase } from './src/lib/supabase';
 import { AdminScreen } from './src/screens/admin/AdminScreen';
+import { CatalogScreen } from './src/screens/CatalogScreen';
 import { HomeScreen, SoonScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { Loading, Screen, type Tab } from './src/ui/components';
+import { SnackProvider } from './src/ui/SnackContext';
 import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <Root />
+        <SnackProvider>
+          <Root />
+        </SnackProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -140,11 +144,13 @@ function Root() {
           <AdminScreen access={access} />
         </Screen>
       ) : (
-        <Screen title="Lobar" tab={tab} onTab={goTab}
+        <Screen title={route.name === 'soon' ? soonTitles[route.tab] : 'Lobar'} tab={tab} onTab={goTab}
           onBack={route.name === 'soon' ? () => setRoute({ name: 'home' }) : undefined}>
           {route.name === 'home'
             ? <HomeScreen access={access} onOpenAdmin={() => setRoute({ name: 'admin' })} onSignOut={() => signOut()} />
-            : <SoonScreen title={soonTitles[route.tab]} />}
+            : route.tab === 'catalog'
+              ? <CatalogScreen access={access} />
+              : <SoonScreen title={soonTitles[route.tab]} />}
         </Screen>
       )}
     </View>

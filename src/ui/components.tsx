@@ -1,6 +1,6 @@
-import type { ComponentRef, ReactNode, Ref } from 'react';
+import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
   type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -255,3 +255,81 @@ const styles = (t: Theme) => StyleSheet.create({
   navIcon: { width: 44, height: 27, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   navLabel: { fontSize: 10, fontWeight: '600' },
 });
+
+// ------------------------------------------------------------------
+// Pastdan chiqadigan oyna (eski ilovadagi modal kabi). Katta ekranda o'rtada, 640 px gacha.
+// ------------------------------------------------------------------
+export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const { t } = useTheme();
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <Pressable accessibilityLabel="Yopish" onPress={onClose} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} />
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center', maxHeight: '92%', backgroundColor: t.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: t.border }}>
+          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 12, gap: 14 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: t.border }} />
+            <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: '800', color: t.text }}>{title}</Text>
+            {children}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+export function Select<K extends string>({ label, value, options, onChange }: {
+  label: string; value: K; options: { key: K; label: string }[]; onChange: (k: K) => void;
+}) {
+  const { t } = useTheme();
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.key === value)?.label ?? value;
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: t.muted }}>{label}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${current}`} accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}
+        style={{ minHeight: 46, borderRadius: 10, borderWidth: 1, borderColor: t.border, backgroundColor: t.input, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={{ flex: 1, fontSize: 16, color: t.text }}>{current}</Text>
+        <View style={{ transform: [{ rotate: open ? '-90deg' : '90deg' }] }}><Icon name="chevron" color={t.muted} size={18} /></View>
+      </Pressable>
+      {open && (
+        <View style={{ borderWidth: 1, borderColor: t.border, borderRadius: 10, overflow: 'hidden' }}>
+          {options.map((o) => (
+            <Pressable key={o.key} accessibilityRole="menuitem" onPress={() => { setOpen(false); onChange(o.key); }}
+              style={{ padding: 12, backgroundColor: o.key === value ? t.tealLight : t.card }}>
+              <Text style={{ fontSize: 15, color: o.key === value ? t.teal : t.text, fontWeight: o.key === value ? '700' : '400' }}>{o.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  const { t } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
+      <Icon name="search" color={t.muted} size={18} />
+      <TextInput accessibilityLabel={placeholder} placeholder={placeholder} placeholderTextColor={t.muted} value={value} onChangeText={onChange}
+        style={[{ flex: 1, minWidth: 0, fontSize: 16, color: t.text, paddingVertical: 10 }, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} autoCorrect={false} />
+    </View>
+  );
+}
+
+/** Pastda qisqa xabar, ixtiyoriy "Bekor qilish" tugmasi bilan. */
+export function Snack({ text, action, onAction, onHide }: { text: string; action?: string; onAction?: () => void; onHide: () => void }) {
+  const { t } = useTheme();
+  useEffect(() => { const id = setTimeout(onHide, 5000); return () => clearTimeout(id); }, [text, onHide]);
+  return (
+    <View accessibilityLiveRegion="polite" style={{ position: 'absolute', left: 16, right: 16, bottom: 86, alignItems: 'center' }} pointerEvents="box-none">
+      <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, backgroundColor: t.text }}>
+        <Text style={{ flex: 1, color: t.bg, fontSize: 14 }}>{text}</Text>
+        {action && onAction && (
+          <Pressable accessibilityRole="button" onPress={() => { onAction(); onHide(); }} style={{ paddingVertical: 4, paddingHorizontal: 6 }}>
+            <Text style={{ color: t.tealLight, fontWeight: '800', fontSize: 13 }}>{action}</Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}

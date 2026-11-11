@@ -3,7 +3,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 // Eski ilovadagi chiziqli (stroke) ikonkalar
 export type IconName =
   | 'back' | 'moon' | 'sun' | 'lock' | 'shield' | 'plus' | 'home' | 'clock' | 'scissors'
-  | 'receipt' | 'chevron' | 'users' | 'logout' | 'key';
+  | 'receipt' | 'chevron' | 'users' | 'logout' | 'key' | 'search' | 'edit' | 'trash' | 'download' | 'upload';
 
 export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: IconName; size?: number; color: string; strokeWidth?: number }) {
   const p = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -22,6 +22,11 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: Icon
       {name === 'chevron' && <Path d="M9 6l6 6-6 6" {...p} />}
       {name === 'users' && (<><Circle cx="9" cy="8" r="4" {...p} /><Path d="M2 21c0-4 3-7 7-7s7 3 7 7" {...p} /><Path d="M16 3.5a4 4 0 0 1 0 8M22 21c0-3-1.7-5.5-4-6.5" {...p} /></>)}
       {name === 'logout' && (<><Path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" {...p} /><Path d="M10 17l-5-5 5-5" {...p} /><Path d="M5 12h12" {...p} /></>)}
+      {name === 'search' && (<><Circle cx="11" cy="11" r="7" {...p} /><Path d="M21 21l-4.35-4.35" {...p} /></>)}
+      {name === 'edit' && (<><Path d="M12 20h9" {...p} /><Path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" {...p} /></>)}
+      {name === 'trash' && (<><Path d="M3 6h18" {...p} /><Path d="M8 6V4h8v2" {...p} /><Path d="M19 6l-1 14H6L5 6" {...p} /><Path d="M10 11v6M14 11v6" {...p} /></>)}
+      {name === 'download' && (<><Path d="M12 3v12" {...p} /><Path d="M7 10l5 5 5-5" {...p} /><Path d="M5 21h14" {...p} /></>)}
+      {name === 'upload' && (<><Path d="M12 15V3" {...p} /><Path d="M7 8l5-5 5 5" {...p} /><Path d="M5 21h14" {...p} /></>)}
       {name === 'key' && (<><Circle cx="7.5" cy="15.5" r="4.5" {...p} /><Path d="M10.7 12.3 21 2M17 6l3 3M14 9l2 2" {...p} /></>)}
     </Svg>
   );
