@@ -20,7 +20,7 @@ export function Select<K extends string>({ label, value, options, onChange, vari
       boxSizing: 'border-box', width: '100%', minWidth: 0, minHeight: compact ? 44 : light ? 48 : 46,
       borderRadius: 10, border: light ? '0' : `${invalid ? 1.5 : 1}px solid ${invalid ? t.red : t.border}`,
       background: `${light ? '#ffffff' : t.input} url("data:image/svg+xml,${chevron}") no-repeat right ${compact ? 6 : 12}px center`,
-      color: fg, padding: compact ? '0 22px 0 8px' : '0 36px 0 14px', fontSize: compact ? 13 : 16, fontWeight: compact ? 600 : 400,
+      color: fg, paddingTop: 0, paddingBottom: 0, paddingLeft: compact ? 8 : 14, paddingRight: compact ? 22 : 38, fontSize: compact ? 13 : 16, fontWeight: compact ? 600 : 400,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', outline: 'none',
       textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden', colorScheme: light ? 'light' : mode, cursor: 'pointer',
     },
