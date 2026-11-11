@@ -31,7 +31,7 @@ export function Select<K extends string>({ label, value, options, onChange, vari
       borderColor: invalid ? t.red : t.border, backgroundColor: light ? '#ffffff' : t.input,
       paddingLeft: compact ? 8 : 14, paddingRight: compact ? 4 : 10, flexDirection: 'row', alignItems: 'center', gap: 4,
     }}>
-      <Text numberOfLines={1} style={{ flex: 1, fontSize: compact ? 13 : 16, fontWeight: compact ? '600' : '400', color: light ? '#1a2420' : current ? t.text : t.red }}>{text}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, fontSize: compact ? 13 : 16, fontWeight: compact ? '600' : '400', color: light ? '#1a2420' : current ? t.text : invalid ? t.red : t.muted }}>{text}</Text>
       <View style={{ transform: [{ rotate: '90deg' }] }}><Icon name="chevron" color={light ? '#5f7369' : t.muted} size={compact ? 14 : 18} /></View>
     </View>
   );

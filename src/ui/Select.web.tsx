@@ -9,7 +9,7 @@ export function Select<K extends string>({ label, value, options, onChange, vari
   const { t, mode } = useTheme();
   const light = variant === 'light';
   const known = options.some((o) => o.key === value);
-  const fg = light ? '#1a2420' : known ? t.text : t.red;
+  const fg = light ? '#1a2420' : known ? t.text : invalid ? t.red : t.muted;
   const chevron = encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='${light ? '#5f7369' : t.muted}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>`);
   const select = unstable_createElement('select', {
     value: known ? value : '',

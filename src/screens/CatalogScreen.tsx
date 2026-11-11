@@ -11,6 +11,7 @@ import { Select } from '../ui/Select';
 import { Icon, type IconName } from '../ui/Icon';
 import { useSnack } from '../ui/SnackContext';
 import { useTheme } from '../ui/ThemeContext';
+import { MacrosSheet } from './MacrosSheet';
 
 type Filter = 'all' | Section;
 const SECTIONS: Section[] = ['mahsulot', 'tikish', 'ustanovka'];
@@ -22,6 +23,7 @@ export function CatalogScreen({ access }: { access: Access }) {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [editing, setEditing] = useState<Product | 'new' | null>(null);
+  const [macrosOpen, setMacrosOpen] = useState(false);
   const canEdit = can(access, 'catalog.edit');
 
   const groups = useMemo(() => {
@@ -76,6 +78,7 @@ export function CatalogScreen({ access }: { access: Access }) {
       </View>
 
       {canEdit && <Button icon="plus" label="Mahsulot yoki xizmat qo‘shish" onPress={() => setEditing('new')} />}
+      {canEdit && <Button kind="soft" icon="box" label="Makroslar (Baget, Potolok karniz)" onPress={() => setMacrosOpen(true)} />}
       <SearchBox value={q} onChange={setQ} placeholder="Mahsulot yoki xizmatni qidirish" />
 
       <View accessibilityRole="radiogroup" accessibilityLabel="Bo‘lim" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -121,6 +124,9 @@ export function CatalogScreen({ access }: { access: Access }) {
         </View>
       ))}
 
+      {canEdit && items && (
+        <MacrosSheet visible={macrosOpen} onClose={() => setMacrosOpen(false)} products={items} onSaved={(m) => { setMacrosOpen(false); snack(m); }} />
+      )}
       {canEdit && (
         <ProductSheet product={editing} onClose={() => setEditing(null)} onSaved={(m) => { setEditing(null); snack(m); }} />
       )}

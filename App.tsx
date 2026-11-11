@@ -8,6 +8,7 @@ import {
 import { supabase } from './src/lib/supabase';
 import { AdminScreen } from './src/screens/admin/AdminScreen';
 import { CatalogScreen } from './src/screens/CatalogScreen';
+import { OrdersScreen } from './src/screens/orders/OrdersScreen';
 import { OrderEditor } from './src/screens/order/OrderEditor';
 import type { Draft } from './src/lib/order/model';
 import { HomeScreen, SoonScreen } from './src/screens/HomeScreen';
@@ -36,6 +37,7 @@ function Root() {
   const [access, setAccess] = useState<Access | null>(null);
   const [locked, setLocked] = useState(false);
   const [route, setRoute] = useState<Route>({ name: 'home' });
+  const [orderFocus, setOrderFocus] = useState<string | null>(null);
   const lastActive = useRef(Date.now());
   const accessRef = useRef<Access | null>(null);
   accessRef.current = access;
@@ -104,7 +106,7 @@ function Root() {
     return () => { clearInterval(timer); appSub.remove(); off(); };
   }, [phase, locked, access, markActive]);
 
-  const goTab = (tab: Tab) => setRoute(tab === 'home' ? { name: 'home' } : { name: 'soon', tab });
+  const goTab = (tab: Tab) => { setOrderFocus(null); setRoute(tab === 'home' ? { name: 'home' } : { name: 'soon', tab }); };
 
   if (phase === 'boot') {
     return <View style={{ flex: 1, backgroundColor: t.bg, justifyContent: 'center' }}><Loading /></View>;
@@ -149,11 +151,13 @@ function Root() {
         </Screen>
       ) : (
         <Screen title={route.name === 'soon' ? soonTitles[route.tab] : 'Lobar'} tab={tab} onTab={goTab}
-          onBack={route.name === 'soon' ? () => setRoute({ name: 'home' }) : undefined}>
+          onBack={route.name === 'soon' ? () => (route.tab === 'orders' && orderFocus ? setOrderFocus(null) : setRoute({ name: 'home' })) : undefined}>
           {route.name === 'home'
             ? <HomeScreen access={access} onOpenAdmin={() => setRoute({ name: 'admin' })} onSignOut={() => signOut()} onNewOrder={(d) => setRoute({ name: 'order', draft: d })} />
             : route.tab === 'catalog'
               ? <CatalogScreen access={access} />
+              : route.tab === 'orders'
+              ? <OrdersScreen access={access} focusId={orderFocus} setFocusId={setOrderFocus} onEdit={(d) => setRoute({ name: 'order', draft: d })} />
               : <SoonScreen title={soonTitles[route.tab]} />}
         </Screen>
       )}

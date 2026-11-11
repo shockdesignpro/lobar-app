@@ -4,6 +4,7 @@ import { type Access } from '../../lib/auth';
 import { useProducts } from '../../lib/catalog';
 import { fmtSom } from '../../lib/format';
 import { receiptFileName, receiptHtml } from '../../lib/receipt';
+import { supabase } from '../../lib/supabase';
 import { autoDownloadAfterSave, downloadReceipt, makeReceiptImage, shareReceipt, type ReceiptImage } from '../../lib/receiptImage';
 import { clearDraft, loadMacros, loadUsage, saveDraftToServer, useDraft, type Macro } from '../../lib/order/draft';
 import {
@@ -78,7 +79,12 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     // Chek rasmi (eski ilovadagidek darhol tayyorlanadi)
     setReceiptBusy(true);
     try {
-      const now = Date.now();
+      let now = Date.now();
+      if (draft.orderId) {
+        // Tahrirlangan buyurtma chekida asl yaratilgan sana qoladi (eski ilovadagidek)
+        const { data } = await supabase.from('orders').select('created_at').eq('id', draft.orderId).maybeSingle();
+        if (data?.created_at) now = new Date(data.created_at).getTime();
+      }
       const img = await makeReceiptImage(receiptHtml(draft, { number: String(result.order_no).padStart(4, '0'), date: now }), receiptFileName(draft.client.name, now));
       setReceipt(img);
       if (autoDownloadAfterSave()) { downloadReceipt(img); snack('Chek rasmi saqlandi'); }

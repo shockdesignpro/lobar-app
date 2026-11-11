@@ -110,7 +110,7 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
                       <View key={row.id} style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         <View style={{ flex: 2.1, minWidth: 0 }}>
                           <Select compact accessibilityLabel={section === 'mahsulot' ? 'Mahsulot' : 'Xizmat'} value={known ? (row.productId as string) : ''}
-                            placeholder="Mahsulot topilmadi — tanlang" invalid={invalid === `row:${row.id}` && !known}
+                            placeholder="Mahsulot topilmadi — tanlang" invalid={!known}
                             options={prods.map((p) => ({ key: p.id, label: p.name }))}
                             onChange={(id) => { const p = prods.find((x) => x.id === id); if (p) setDraft((d) => setRowProduct(d, row.id, p)); }} />
                         </View>
