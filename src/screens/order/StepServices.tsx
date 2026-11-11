@@ -83,7 +83,6 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
         const meta = META[section];
         const prods = sectionProducts(catalog, section);
         const rows = draft.rows.filter((r) => r.section === section && isCurrentRow(draft, r, target));
-        const top = prods.filter((p) => (usage[p.id] ?? 0) > 0).sort((a, b) => (usage[b.id] ?? 0) - (usage[a.id] ?? 0)).slice(0, 4);
         return (
           <View key={section} style={{ gap: 8 }}>
             <SectionHeader icon={meta.icon} title={meta.title} right={section === 'mahsulot' ? (
@@ -91,16 +90,6 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
                 {macros.map((m) => <SoftButton key={m.id} label={m.name} small onPress={() => runMacro(m)} />)}
               </View>
             ) : undefined} />
-            {top.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {top.map((p) => (
-                  <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={`${p.name} qo‘shish`} onPress={() => add(section, p.id)}
-                    style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1, borderColor: t.border, backgroundColor: t.card, justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 12, color: t.text }}>+ {p.name}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
             <Card style={{ gap: 10 }}>
               {!prods.length ? (
                 <Text style={{ fontSize: 14, color: t.muted }}>Bu bo‘limda mahsulot yo‘q.</Text>
