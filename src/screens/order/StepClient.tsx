@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import {
   addOpening, addRoom, COLORS, isoDatePlus, normalizePhone, openingLabel, RAIL_TYPES, removeOpening, removeRoom,
   updateOpening, updateRoomName, type CatalogItem, type Draft,
@@ -16,6 +16,7 @@ export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
   draft: Draft; setDraft: (fn: (d: Draft) => Draft) => void; catalog: CatalogItem[]; invalid: string | null; onNewClient: () => void;
 }) {
   const { t } = useTheme();
+  const wide = useWindowDimensions().width >= 760;
   const c = draft.client;
   const setClient = (patch: Partial<Draft['client']>) => setDraft((d) => ({ ...d, client: { ...d.client, ...patch } }));
   const chipDays = [3, 5, 7];
@@ -94,7 +95,9 @@ export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
                   </Pressable>
                 )}
               </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              {/* Keng ekranda (iPad, kompyuter) to'rttasi bir qatorda — eski ilovadagidek (760px dan) */}
+              <View style={{ flexDirection: wide ? 'row' : 'column', gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, flex: wide ? 1 : undefined }}>
                 <View style={{ flex: 1 }}>
                   <Label>Bo‘yi · m</Label>
                   <Input accessibilityLabel={`${openingLabel(room.openings, oi)} bo‘yi`} placeholder="0.00" keyboardType="decimal-pad" value={o.height}
@@ -108,7 +111,7 @@ export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
                     onChangeText={(v) => setDraft((d) => updateOpening(d, room.id, o.id, 'width', v, catalog, newId))} />
                 </View>
               </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, flex: wide ? 1 : undefined }}>
                 <View style={{ flex: 1 }}>
                   <Select label="Karniz turi" value={o.rail} options={RAIL_TYPES.map((x) => ({ key: x, label: x }))}
                     onChange={(v) => setDraft((d) => updateOpening(d, room.id, o.id, 'rail', v, catalog, newId))} />
@@ -117,6 +120,7 @@ export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
                   <Select label="Rangi" value={o.color} options={COLORS.map((x) => ({ key: x, label: x }))}
                     onChange={(v) => setDraft((d) => updateOpening(d, room.id, o.id, 'color', v, catalog, newId))} />
                 </View>
+              </View>
               </View>
             </View>
           ))}
