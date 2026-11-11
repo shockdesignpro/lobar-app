@@ -17,9 +17,11 @@ import { useSync } from '../lib/offline';
 export type Tab = 'home' | 'orders' | 'catalog' | 'reports';
 
 export function Screen({
-  title, caption = 'PARDALAR UYI', onBack, children, tab, onTab, right, dock, scrollRef,
+  title, caption = 'PARDALAR UYI', onBack, children, tab, onTab, right, dock, scrollRef, onMenu,
 }: {
   title: string; caption?: string; onBack?: () => void; children: ReactNode; tab?: Tab; onTab?: (t: Tab) => void; right?: ReactNode;
+  /** O'ng burchakdagi burger tugmasi — "Sozlamalar" menyusini ochadi */
+  onMenu?: () => void;
   /** Pastki menyu o'rniga ko'rsatiladigan panel (masalan, buyurtma kiritishda "Jami hisob") */
   dock?: ReactNode;
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
@@ -42,6 +44,11 @@ export function Screen({
         <Pressable accessibilityRole="button" accessibilityLabel="Tungi rejim" onPress={toggle} style={s.circleBtn}>
           <Icon name={mode === 'dark' ? 'sun' : 'moon'} color={t.teal} size={19} />
         </Pressable>
+        {onMenu && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Sozlamalar menyusi" onPress={onMenu} style={s.circleBtn}>
+            <Icon name="menu" color={t.teal} size={20} strokeWidth={2} />
+          </Pressable>
+        )}
       </View>
       <SyncBar />
 

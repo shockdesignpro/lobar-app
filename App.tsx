@@ -17,6 +17,7 @@ import { OrderEditor } from './src/screens/order/OrderEditor';
 import type { Draft } from './src/lib/order/model';
 import { HomeScreen, type OrdersPreset } from './src/screens/HomeScreen';
 import { ReportScreen } from './src/screens/ReportScreen';
+import { SettingsMenu } from './src/screens/SettingsMenu';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { Loading, Screen, type Tab } from './src/ui/components';
 import { SnackProvider, useSnack } from './src/ui/SnackContext';
@@ -44,6 +45,7 @@ function Root() {
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const [orderFocus, setOrderFocus] = useState<string | null>(null);
   const [focusFrom, setFocusFrom] = useState<Tab | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [preset, setPreset] = useState<{ n: number; p: OrdersPreset | null }>({ n: 0, p: null });
   const lastActive = useRef(Date.now());
   const accessRef = useRef<Access | null>(null);
@@ -166,17 +168,19 @@ function Root() {
       onMoveShouldSetResponderCapture={() => { markActive(); return false; }}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <RemindersSync access={access} />
+      <SettingsMenu visible={menuOpen} onClose={() => setMenuOpen(false)} access={access}
+        onOpenAdmin={() => { setOrderFocus(null); setRoute({ name: 'admin' }); }} onSignOut={() => { void signOut(); }} />
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
       ) : route.name === 'admin' ? (
-        <Screen title="Admin panel" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab}>
+        <Screen title="Admin panel" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
           <AdminScreen access={access} />
         </Screen>
       ) : (
-        <Screen title={route.name === 'soon' ? soonTitles[route.tab] : 'Lobar'} tab={tab} onTab={goTab}
+        <Screen title={route.name === 'soon' ? soonTitles[route.tab] : 'Lobar'} tab={tab} onTab={goTab} onMenu={() => setMenuOpen(true)}
           onBack={route.name === 'soon' ? () => (route.tab === 'orders' && orderFocus ? (focusFrom ? goTab(focusFrom) : setOrderFocus(null)) : setRoute({ name: 'home' })) : undefined}>
           {route.name === 'home'
-            ? <HomeScreen access={access} onOpenAdmin={() => setRoute({ name: 'admin' })} onSignOut={() => signOut()} onNewOrder={(d) => setRoute({ name: 'order', draft: d })}
+            ? <HomeScreen access={access} onNewOrder={(d) => setRoute({ name: 'order', draft: d })}
                 onOpenOrder={openOrder('home')} onShowOrders={showOrders} />
             : route.tab === 'catalog'
               ? <CatalogScreen access={access} />

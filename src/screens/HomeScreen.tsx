@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { can, isAdmin, type Access } from '../lib/auth';
+import { can, type Access } from '../lib/auth';
 import { loadDraft } from '../lib/order/draft';
 import type { Draft } from '../lib/order/model';
 import { fmtN } from '../lib/format';
 import { remaining, stage, useOrders } from '../lib/orders';
-import { supabase } from '../lib/supabase';
-import { RemindersSheet } from './RemindersSheet';
-import { ImportSheet } from './ImportSheet';
-import { pendingOps } from '../lib/offline';
-import { confirmAsk } from '../ui/confirm';
 import { CompactOrder, CurtainArt, EmptyCard, SectionTitle } from './home/CompactOrder';
-import { Button, Card, Field, Intro, Note } from '../ui/components';
+import { Intro } from '../ui/components';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 
@@ -37,28 +32,12 @@ export function MenuItem({ icon, title, sub, onPress, danger }: { icon: IconName
   );
 }
 
-export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder, onOpenOrder, onShowOrders }: {
-  access: Access; onOpenAdmin: () => void; onSignOut: () => void; onNewOrder: (resume: Draft | null) => void;
+export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
+  access: Access; onNewOrder: (resume: Draft | null) => void;
   onOpenOrder: (id: string) => void; onShowOrders: (preset: OrdersPreset) => void;
 }) {
   const { t } = useTheme();
   const d = new Date();
-  const [codeOpen, setCodeOpen] = useState(false);
-  const [code, setCode] = useState('');
-  const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [remOpen, setRemOpen] = useState(false);
-  const [impOpen, setImpOpen] = useState(false);
-
-  const saveCode = async () => {
-    setBusy(true); setMsg(null);
-    const { error } = await supabase.rpc('set_staff_code', { p_staff: access.staff_id, p_code: code });
-    setBusy(false);
-    if (error) setMsg({ tone: 'error', text: error.message });
-    else { setMsg({ tone: 'ok', text: 'Kod almashtirildi.' }); setCode(''); setCodeOpen(false); }
-  };
-
-  const showAdmin = isAdmin(access) || can(access, 'staff.manage_workers');
   const canOrder = can(access, 'orders.edit');
   const [draft, setDraftState] = useState<Draft | null>(null);
   useEffect(() => { if (canOrder) loadDraft().then(setDraftState); }, [canOrder]);
@@ -135,29 +114,6 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder, onOpenO
       ) : orders.length ? orders.map((o) => <CompactOrder key={o.id} o={o} showMoney={false} onPress={() => onOpenOrder(o.id)} />)
         : <EmptyCard title="Hozircha ish yo‘q" text="Sizga buyurtma biriktirilganda u shu yerda ko‘rinadi." />}
 
-      <SectionTitle title="Sozlamalar" />
-      <View style={{ gap: 10 }}>
-        {showAdmin && <MenuItem icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={onOpenAdmin} />}
-        {isAdmin(access) && <MenuItem icon="cloud" title="Eski ilovadan ko‘chirish" sub="Zaxira faylidagi buyurtmalar va to‘lovlar" onPress={() => setImpOpen(true)} />}
-        <MenuItem icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => setRemOpen(true)} />
-        <MenuItem icon="key" title="Kodni almashtirish" sub="Shaxsiy kirish kodingiz" onPress={() => { setCodeOpen(!codeOpen); setMsg(null); }} />
-        {codeOpen && (
-          <Card style={{ gap: 10 }}>
-            <Field label="Yangi kod (harf va raqamlar)" value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))}
-              secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} />
-            <Note>{access.level >= 100 ? 'Kamida 8 ta belgi, bo‘sh joysiz.' : access.level >= 50 ? 'Kamida 6 ta belgi, bo‘sh joysiz.' : 'Kamida 4 ta belgi, bo‘sh joysiz.'}</Note>
-            <Button label="Saqlash" onPress={saveCode} busy={busy} />
-          </Card>
-        )}
-        {msg && <Note tone={msg.tone}>{msg.text}</Note>}
-        {impOpen && <ImportSheet visible onClose={() => setImpOpen(false)} />}
-        <RemindersSheet visible={remOpen} onClose={() => setRemOpen(false)} access={access} />
-        <MenuItem icon="logout" title="Chiqish" sub={`${access.full_name} · ${access.role_name}`} danger onPress={async () => {
-          const n = pendingOps().length;
-          if (n && !(await confirmAsk(`Internetsiz kiritilgan ${n} ta o‘zgarish hali serverga yuborilmagan. Chiqsangiz, ular yo‘qoladi. Baribir chiqamizmi?`, 'Chiqish'))) return;
-          onSignOut();
-        }} />
-      </View>
     </>
   );
 }
