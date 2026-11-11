@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { type Access } from '../../lib/auth';
 import { useProducts } from '../../lib/catalog';
 import { fmtSom } from '../../lib/format';
+import { receiptFileName, receiptHtml } from '../../lib/receipt';
+import { autoDownloadAfterSave, downloadReceipt, makeReceiptImage, shareReceipt, type ReceiptImage } from '../../lib/receiptImage';
 import { clearDraft, loadMacros, loadUsage, saveDraftToServer, useDraft, type Macro } from '../../lib/order/draft';
 import {
   emptyDraft, isDraftEmpty, resolveTarget, totals, validateCustomer, validateServices, type CatalogItem, type Draft,
@@ -30,6 +32,8 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
   const [sel, setSel] = useState<{ roomId: string | null | undefined; openingId: string | null | undefined }>({ roomId: undefined, openingId: undefined });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<{ no: number; total: number } | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptImage | null>(null);
+  const [receiptBusy, setReceiptBusy] = useState(false);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => { loadMacros().then(setMacros).catch(() => {}); loadUsage().then(setUsage); }, []);
@@ -60,13 +64,27 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     const p1 = validateCustomer(draft); if (p1) { goStep(1); return; }
     const p2 = validateServices(draft, catalog); if (p2) { goStep(2); return; }
     setSaving(true);
+    let result: { order_no: number; total: number } | null = null;
     try {
-      const r = await saveDraftToServer(draft, catalog);
+      result = await saveDraftToServer(draft, catalog);
       await clearDraft();
-      setSaved({ no: r.order_no, total: Number(r.total) });
+      setSaved({ no: result.order_no, total: Number(result.total) });
     } catch (e) {
       snack(e instanceof Error ? e.message : 'Saqlanmadi');
-    } finally { setSaving(false); }
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    // Chek rasmi (eski ilovadagidek darhol tayyorlanadi)
+    setReceiptBusy(true);
+    try {
+      const now = Date.now();
+      const img = await makeReceiptImage(receiptHtml(draft, { number: String(result.order_no).padStart(4, '0'), date: now }), receiptFileName(draft.client.name, now));
+      setReceipt(img);
+      if (autoDownloadAfterSave()) { downloadReceipt(img); snack('Chek rasmi saqlandi'); }
+    } catch (e) {
+      snack('Chek rasmini tayyorlab bo‘lmadi: ' + (e instanceof Error ? e.message : ''));
+    } finally { setReceiptBusy(false); }
   };
 
   const newClient = async () => {
@@ -77,17 +95,32 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
 
   if (saved) {
     return (
-      <Screen title="Buyurtma saqlandi" onBack={onExit}>
-        <Card style={{ alignItems: 'center', gap: 10, paddingVertical: 28 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="check" color={t.teal} size={30} strokeWidth={2.4} />
+      <Screen title="Chek tayyor" onBack={onExit}>
+        <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
+          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="check" color={t.teal} size={28} strokeWidth={2.4} />
           </View>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: t.text }}>Buyurtma №{String(saved.no).padStart(4, '0')} saqlandi</Text>
+          <Text style={{ fontSize: 19, fontWeight: '800', color: t.text, textAlign: 'center' }}>Buyurtma №{String(saved.no).padStart(4, '0')} saqlandi</Text>
           <Text style={{ fontSize: 15, color: t.muted }}>Jami: {fmtSom(saved.total)}</Text>
-          <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>Buyurtma hamma qurilmada ko‘rinadi. Chekni rasm qilib saqlash keyingi qismda qo‘shiladi.</Text>
         </Card>
-        <Button label="Bosh sahifa" onPress={onExit} />
-        <Button kind="soft" label="Yangi buyurtma" icon="plus" onPress={() => { setSaved(null); setDraft(() => emptyDraft()); }} />
+        {receiptBusy && <Loading />}
+        {receipt && Platform.OS === 'web' && (
+          <View style={{ alignItems: 'center' }}>
+            <Image accessibilityLabel="Chek" source={{ uri: receipt.uri }} resizeMode="contain"
+              style={{ width: '100%', maxWidth: 400, aspectRatio: receipt.width / Math.max(1, receipt.height), borderRadius: 12, borderWidth: 1, borderColor: t.border, backgroundColor: '#ffffff' }} />
+          </View>
+        )}
+        {receipt && (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Button label="Ulashish" icon="upload" style={{ flex: 1 }} onPress={async () => { if (!(await shareReceipt(receipt))) snack('Bu qurilmada ulashish yo‘q — “Yuklab olish”ni bosing'); }} />
+            {Platform.OS === 'web' && <Button kind="soft" label="Yuklab olish" icon="download" style={{ flex: 1 }} onPress={() => downloadReceipt(receipt)} />}
+          </View>
+        )}
+        <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>
+          {Platform.OS === 'web' ? 'iPhone’da “Ulashish” → “Rasmni saqlash” orqali chek galereyaga tushadi.' : 'Chek PDF fayl sifatida ulashiladi: Telegram, galereya yoki fayllarga.'}
+        </Text>
+        <Button kind="soft" label="Bosh sahifa" onPress={onExit} />
+        <Button kind="soft" label="Yangi buyurtma" icon="plus" onPress={() => { setSaved(null); setReceipt(null); setDraft(() => emptyDraft()); }} />
       </Screen>
     );
   }
@@ -99,7 +132,7 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
         <Text style={{ fontSize: 18, fontWeight: '800', color: t.text }}>{fmtSom(tot.grand)}</Text>
       </View>
       <Button
-        label={step === 3 ? 'Buyurtmani saqlash' : 'Davom etish'} icon={step === 3 ? 'check' : undefined}
+        label={step === 3 ? 'Chek tayyorlash' : 'Davom etish'} icon={step === 3 ? 'check' : undefined}
         busy={saving} onPress={() => (step === 3 ? save() : goStep((step + 1) as 2 | 3))}
         style={{ minWidth: 150 }}
       />
@@ -137,3 +170,4 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     </Screen>
   );
 }
+
