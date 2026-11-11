@@ -6,7 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { can, isAdmin, type Access } from '../lib/auth';
 import { pendingOps } from '../lib/offline';
 import { supabase } from '../lib/supabase';
-import { Badge, Button, Field, Note, SwitchRow } from '../ui/components';
+import { Badge, Button, Field, Note } from '../ui/components';
+import { useSnack } from '../ui/SnackContext';
+import { useProducts } from '../lib/catalog';
+import { MacrosSheet } from './MacrosSheet';
 import { confirmAsk } from '../ui/confirm';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
@@ -15,7 +18,7 @@ import { RemindersSheet } from './RemindersSheet';
 export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut }: {
   visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void;
 }) {
-  const { t, mode, toggle } = useTheme();
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const panelW = Math.min(360, Math.round(width * 0.86));
@@ -26,6 +29,8 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [remOpen, setRemOpen] = useState(false);
+  const [macrosOpen, setMacrosOpen] = useState(false);
+  const snack = useSnack();
 
   useEffect(() => {
     if (visible) {
@@ -82,6 +87,9 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut 
               {showAdmin && (
                 <Row icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={() => go(onOpenAdmin)} />
               )}
+              {can(access, 'catalog.edit') && (
+                <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
+              )}
               <Row icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => go(() => setTimeout(() => setRemOpen(true), 260))} />
               <Row icon="key" title="Kodni almashtirish" sub="Shaxsiy kirish kodingiz" open={codeOpen} onPress={() => { setCodeOpen(!codeOpen); setMsg(null); }} />
               {codeOpen && (
@@ -93,9 +101,6 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut 
                 </View>
               )}
               {msg && <Note tone={msg.tone}>{msg.text}</Note>}
-              <View style={{ paddingHorizontal: 14, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
-                <SwitchRow label="Tungi rejim" value={mode === 'dark'} onChange={toggle} last />
-              </View>
 
               <View style={{ height: 6 }} />
               <Row icon="logout" title="Chiqish" danger onPress={async () => {
@@ -108,6 +113,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut 
         </View>
       </Modal>
       <RemindersSheet visible={remOpen} onClose={() => setRemOpen(false)} access={access} />
+      {macrosOpen && <MacrosEditor onClose={() => setMacrosOpen(false)} onSaved={(m) => { setMacrosOpen(false); snack(m); }} />}
     </>
   );
 }
@@ -127,4 +133,10 @@ function Row({ icon, title, sub, onPress, danger, open }: { icon: IconName; titl
       {!danger && <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><Icon name="chevron" color={t.muted} size={18} /></View>}
     </Pressable>
   );
+}
+
+/** Makroslar oynasi: katalog faqat ochilganda yuklanadi */
+function MacrosEditor({ onClose, onSaved }: { onClose: () => void; onSaved: (m: string) => void }) {
+  const { items } = useProducts();
+  return <MacrosSheet visible onClose={onClose} products={items ?? []} onSaved={onSaved} />;
 }

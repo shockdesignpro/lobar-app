@@ -26,7 +26,7 @@ export function Screen({
   dock?: ReactNode;
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
-  const { t, mode, toggle } = useTheme();
+  const { t } = useTheme();
   const s = styles(t);
   return (
     <SafeAreaView style={s.shell} edges={['top', 'bottom', 'left', 'right']}>
@@ -41,9 +41,6 @@ export function Screen({
           <Text style={s.brand}>{caption}</Text>
         </View>
         {right}
-        <Pressable accessibilityRole="button" accessibilityLabel="Tungi rejim" onPress={toggle} style={s.circleBtn}>
-          <Icon name={mode === 'dark' ? 'sun' : 'moon'} color={t.teal} size={19} />
-        </Pressable>
         {onMenu && (
           <Pressable accessibilityRole="button" accessibilityLabel="Sozlamalar menyusi" onPress={onMenu} style={s.circleBtn}>
             <Icon name="menu" color={t.teal} size={20} strokeWidth={2} />
