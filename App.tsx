@@ -8,6 +8,8 @@ import {
 import { supabase } from './src/lib/supabase';
 import { AdminScreen } from './src/screens/admin/AdminScreen';
 import { CatalogScreen } from './src/screens/CatalogScreen';
+import { OrderEditor } from './src/screens/order/OrderEditor';
+import type { Draft } from './src/lib/order/model';
 import { HomeScreen, SoonScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { Loading, Screen, type Tab } from './src/ui/components';
@@ -26,7 +28,7 @@ export default function App() {
   );
 }
 
-type Route = { name: 'home' } | { name: 'admin' } | { name: 'soon'; tab: Tab };
+type Route = { name: 'home' } | { name: 'admin' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
 
 function Root() {
   const { t, mode } = useTheme();
@@ -139,7 +141,9 @@ function Root() {
       onStartShouldSetResponderCapture={() => { markActive(); return false; }}
       onMoveShouldSetResponderCapture={() => { markActive(); return false; }}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      {route.name === 'admin' ? (
+      {route.name === 'order' ? (
+        <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
+      ) : route.name === 'admin' ? (
         <Screen title="Admin panel" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab}>
           <AdminScreen access={access} />
         </Screen>
@@ -147,7 +151,7 @@ function Root() {
         <Screen title={route.name === 'soon' ? soonTitles[route.tab] : 'Lobar'} tab={tab} onTab={goTab}
           onBack={route.name === 'soon' ? () => setRoute({ name: 'home' }) : undefined}>
           {route.name === 'home'
-            ? <HomeScreen access={access} onOpenAdmin={() => setRoute({ name: 'admin' })} onSignOut={() => signOut()} />
+            ? <HomeScreen access={access} onOpenAdmin={() => setRoute({ name: 'admin' })} onSignOut={() => signOut()} onNewOrder={(d) => setRoute({ name: 'order', draft: d })} />
             : route.tab === 'catalog'
               ? <CatalogScreen access={access} />
               : <SoonScreen title={soonTitles[route.tab]} />}

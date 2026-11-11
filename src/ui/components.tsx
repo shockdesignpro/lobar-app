@@ -16,9 +16,12 @@ import { useTheme } from './ThemeContext';
 export type Tab = 'home' | 'orders' | 'catalog' | 'reports';
 
 export function Screen({
-  title, onBack, children, tab, onTab, right,
+  title, caption = 'PARDALAR UYI', onBack, children, tab, onTab, right, dock, scrollRef,
 }: {
-  title: string; onBack?: () => void; children: ReactNode; tab?: Tab; onTab?: (t: Tab) => void; right?: ReactNode;
+  title: string; caption?: string; onBack?: () => void; children: ReactNode; tab?: Tab; onTab?: (t: Tab) => void; right?: ReactNode;
+  /** Pastki menyu o'rniga ko'rsatiladigan panel (masalan, buyurtma kiritishda "Jami hisob") */
+  dock?: ReactNode;
+  scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
   const { t, mode, toggle } = useTheme();
   const s = styles(t);
@@ -32,7 +35,7 @@ export function Screen({
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.topTitle} numberOfLines={1}>{title}</Text>
-          <Text style={s.brand}>PARDALAR UYI</Text>
+          <Text style={s.brand}>{caption}</Text>
         </View>
         {right}
         <Pressable accessibilityRole="button" accessibilityLabel="Tungi rejim" onPress={toggle} style={s.circleBtn}>
@@ -41,6 +44,7 @@ export function Screen({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
@@ -49,7 +53,7 @@ export function Screen({
         <View style={s.content}>{children}</View>
       </ScrollView>
 
-      {tab && onTab && (
+      {dock ?? (tab && onTab && (
         <View style={s.nav} accessibilityRole="tablist">
           {([['home', 'home', 'Asosiy'], ['orders', 'clock', 'Buyurtmalar'], ['catalog', 'scissors', 'Katalog'], ['reports', 'receipt', 'Hisobot']] as [Tab, IconName, string][]).map(([k, icon, label]) => {
             const active = tab === k;
@@ -63,7 +67,7 @@ export function Screen({
             );
           })}
         </View>
-      )}
+      ))}
     </SafeAreaView>
   );
 }

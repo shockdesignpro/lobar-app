@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { can, isAdmin, type Access } from '../lib/auth';
+import { loadDraft } from '../lib/order/draft';
+import type { Draft } from '../lib/order/model';
 import { supabase } from '../lib/supabase';
 import { Button, Card, Field, Intro, Note } from '../ui/components';
 import { Icon, type IconName } from '../ui/Icon';
@@ -26,7 +28,7 @@ export function MenuItem({ icon, title, sub, onPress, danger }: { icon: IconName
   );
 }
 
-export function HomeScreen({ access, onOpenAdmin, onSignOut }: { access: Access; onOpenAdmin: () => void; onSignOut: () => void }) {
+export function HomeScreen({ access, onOpenAdmin, onSignOut, onNewOrder }: { access: Access; onOpenAdmin: () => void; onSignOut: () => void; onNewOrder: (resume: Draft | null) => void }) {
   const { t } = useTheme();
   const d = new Date();
   const [codeOpen, setCodeOpen] = useState(false);
@@ -43,6 +45,9 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut }: { access: Access;
   };
 
   const showAdmin = isAdmin(access) || can(access, 'staff.manage_workers');
+  const canOrder = can(access, 'orders.edit');
+  const [draft, setDraftState] = useState<Draft | null>(null);
+  useEffect(() => { if (canOrder) loadDraft().then(setDraftState); }, [canOrder]);
 
   return (
     <>
@@ -54,11 +59,22 @@ export function HomeScreen({ access, onOpenAdmin, onSignOut }: { access: Access;
         <Text style={{ fontSize: 12, color: t.teal, fontWeight: '700', marginTop: 4 }}>{access.role_name} · {access.login}</Text>
       </Card>
 
-      <Card style={{ backgroundColor: t.tealLight, borderColor: t.tealLight }}>
-        <Text style={{ fontSize: 13, lineHeight: 19, color: t.text }}>
-          Buyurtmalar, katalog, kalkulyator va hisobot keyingi bosqichda eski ilovadan shu yerga ko‘chiriladi.
-        </Text>
-      </Card>
+      {canOrder && (
+        <Pressable accessibilityRole="button" onPress={() => onNewOrder(null)}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 15, backgroundColor: t.primaryButton, opacity: pressed ? 0.9 : 1 })}>
+          <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="plus" color="#ffffff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#ffffff' }}>Yangi buyurtma</Text>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Mijoz va o‘lchamlarni kiriting</Text>
+          </View>
+          <Icon name="arrowRight" color="#ffffff" />
+        </Pressable>
+      )}
+      {canOrder && draft && (
+        <MenuItem icon="file" title="Tugallanmagan buyurtma" sub={`${draft.client.name || 'Ismsiz mijoz'} · davom ettirish`} onPress={() => onNewOrder(draft)} />
+      )}
 
       <View style={{ gap: 10 }}>
         {showAdmin && <MenuItem icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={onOpenAdmin} />}
