@@ -112,6 +112,11 @@ export function CatalogScreen({ access }: { access: Access }) {
                   <Text style={{ fontSize: 12, color: t.muted, marginTop: 3 }}>
                     <Text style={{ fontWeight: '700', color: t.text }}>{fmtN(p.price)} so‘m</Text> / {p.unit}
                   </Text>
+                  {p.section !== 'mahsulot' && (
+                    <Text style={{ fontSize: 12, color: p.worker_rate ? t.muted : t.amber, marginTop: 2 }}>
+                      {p.worker_rate ? `Ishchiga: ${fmtN(p.worker_rate)} so‘m / ${p.unit}` : 'Ishchi stavkasi kiritilmagan'}
+                    </Text>
+                  )}
                 </View>
                 {canEdit && <SquareBtn icon="edit" label={`${p.name}: tahrirlash`} onPress={() => setEditing(p)} />}
                 {canEdit && <SquareBtn icon="trash" label={`${p.name}: o‘chirish`} danger onPress={() => remove(p)} />}
@@ -159,6 +164,7 @@ function ProductSheet({ product, onClose, onSaved }: { product: Product | 'new' 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [unit, setUnit] = useState('m');
+  const [rate, setRate] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [openedFor, setOpenedFor] = useState<Product | 'new' | null>(null);
@@ -166,15 +172,17 @@ function ProductSheet({ product, onClose, onSaved }: { product: Product | 'new' 
   // Oyna har ochilganda maydonlarni to'ldiramiz
   if (product !== openedFor) {
     setOpenedFor(product);
-    setSection(p?.section ?? 'mahsulot'); setName(p?.name ?? ''); setPrice(p ? fmtN(p.price) : ''); setUnit(p?.unit ?? 'm'); setErr('');
+    setSection(p?.section ?? 'mahsulot'); setName(p?.name ?? ''); setPrice(p ? fmtN(p.price) : ''); setUnit(p?.unit ?? 'm'); setRate(p?.worker_rate ? fmtN(p.worker_rate) : ''); setErr('');
   }
 
   const save = async () => {
     const n = calcNumber(price);
     if (!name.trim()) { setErr('Nom kiriting!'); return; }
     if (n === null) { setErr('Narxni to‘g‘ri kiriting. Masalan: 60 000'); return; }
+    const r = section === 'mahsulot' || !rate.trim() ? 0 : calcNumber(rate);
+    if (r === null) { setErr('Ishchi stavkasini to‘g‘ri kiriting. Masalan: 15 000'); return; }
     setBusy(true);
-    const { error } = await saveProduct({ id: p?.id, name: name.trim(), section, price: n, unit });
+    const { error } = await saveProduct({ id: p?.id, name: name.trim(), section, price: n, unit, worker_rate: r });
     setBusy(false);
     if (error) setErr(error.message); else onSaved(isNew ? 'Qo‘shildi' : 'Yangilandi');
   };
@@ -200,6 +208,14 @@ function ProductSheet({ product, onClose, onSaved }: { product: Product | 'new' 
       <Field label="Mahsulot nomi" placeholder="Masalan: Karniz 3m" value={name} onChangeText={setName} />
       <Field label="Narxi (so‘m)" placeholder="Masalan: 60 000" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
       <Select label="O‘lchov birligi" value={unit} options={unitOptions} onChange={setUnit} />
+      {section !== 'mahsulot' && (
+        <>
+          <Field label={`Ishchi stavkasi (1 ${unit} uchun, so‘m)`} placeholder="Masalan: 15 000" value={rate} onChangeText={setRate} keyboardType="decimal-pad" />
+          <Text style={{ fontSize: 12, color: t.muted, lineHeight: 17, marginTop: -4 }}>
+            {section === 'tikish' ? 'Tikuvchiga “Dazmolandi” belgilanganda' : 'Ustaga “Pardani o‘rnatish” belgilanganda'} miqdor × stavka hisoblanadi. Bir necha kishi bo‘lsa, teng bo‘linadi.
+          </Text>
+        </>
+      )}
       {!!err && <Note tone="error">{err}</Note>}
       <Button label="Saqlash" onPress={save} busy={busy} />
       <Pressable accessibilityRole="button" onPress={onClose} style={{ alignItems: 'center', paddingVertical: 10 }}>

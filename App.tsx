@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
-  autoLockMinutes, getLastActive, hasStoredSession, loadAccess, signOut, touchActive, type Access,
+  autoLockMinutes, can, getLastActive, hasStoredSession, loadAccess, signOut, touchActive, type Access,
 } from './src/lib/auth';
 import { onSyncFailure, setCacheScope, startNetworkWatch } from './src/lib/offline';
 import { RemindersSync } from './src/lib/RemindersSync';
@@ -18,6 +18,7 @@ import type { Draft } from './src/lib/order/model';
 import { HomeScreen, type OrdersPreset } from './src/screens/HomeScreen';
 import { ReportScreen } from './src/screens/ReportScreen';
 import { SettingsMenu } from './src/screens/SettingsMenu';
+import { PayrollScreen } from './src/screens/PayrollScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { Loading, Screen, type Tab } from './src/ui/components';
 import { SnackProvider, useSnack } from './src/ui/SnackContext';
@@ -35,7 +36,7 @@ export default function App() {
   );
 }
 
-type Route = { name: 'home' } | { name: 'admin' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
+type Route = { name: 'home' } | { name: 'admin' } | { name: 'payroll'; staffId: string | null } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
 
 function Root() {
   const { t, mode } = useTheme();
@@ -169,9 +170,15 @@ function Root() {
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <RemindersSync access={access} />
       <SettingsMenu visible={menuOpen} onClose={() => setMenuOpen(false)} access={access}
-        onOpenAdmin={() => { setOrderFocus(null); setRoute({ name: 'admin' }); }} onSignOut={() => { void signOut(); }} />
+        onOpenAdmin={() => { setOrderFocus(null); setRoute({ name: 'admin' }); }} onSignOut={() => { void signOut(); }}
+        onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }} />
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
+      ) : route.name === 'payroll' ? (
+        <Screen title="Ish haqi" tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}
+          onBack={() => (route.staffId && can(access, 'payroll.manage') ? setRoute({ name: 'payroll', staffId: null }) : setRoute({ name: 'home' }))}>
+          <PayrollScreen access={access} staffId={route.staffId} setStaffId={(id) => setRoute({ name: 'payroll', staffId: id })} />
+        </Screen>
       ) : route.name === 'admin' ? (
         <Screen title="Admin panel" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
           <AdminScreen access={access} />

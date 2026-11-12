@@ -15,8 +15,8 @@ import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 import { RemindersSheet } from './RemindersSheet';
 
-export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut }: {
-  visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void;
+export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll }: {
+  visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void;
 }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -87,6 +87,11 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut 
               {showAdmin && (
                 <Row icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={() => go(onOpenAdmin)} />
               )}
+              {can(access, 'payroll.manage') ? (
+                <Row icon="wallet" title="Ish haqi" sub="Tikuvchi va ustalar hisobi" onPress={() => go(onOpenPayroll)} />
+              ) : access.role === 'tikuvchi' || access.role === 'usta' ? (
+                <Row icon="wallet" title="Mening ish haqim" sub="Bajarilgan ishlar va qoldiq" onPress={() => go(onOpenPayroll)} />
+              ) : null}
               {can(access, 'catalog.edit') && (
                 <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
               )}

@@ -6,6 +6,8 @@ import { supabase } from './supabase';
 export type Section = 'mahsulot' | 'tikish' | 'ustanovka';
 export type Product = {
   id: string; legacy_id: number | null; name: string; section: Section; price: number; unit: string; sort_order: number;
+  /** Ishchi stavkasi (1 birlik uchun) — faqat tikish va o'rnatish xizmatlarida */
+  worker_rate: number;
 };
 
 export const SECTION_TITLES: Record<Section, string> = {
@@ -24,7 +26,7 @@ export function useProducts() {
 
   const load = useCallback(async () => {
     const { data, error: e } = await supabase
-      .from('products').select('id, legacy_id, name, section, price, unit, sort_order')
+      .from('products').select('id, legacy_id, name, section, price, unit, sort_order, worker_rate')
       .is('deleted_at', null);
     if (e) {
       // Internet yo'q: oxirgi saqlangan katalog bilan ishlaymiz
@@ -32,7 +34,7 @@ export function useProducts() {
       setError(e.message); setItems((prev) => prev ?? []); return;
     }
     setError('');
-    const list = ((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byName);
+    const list = ((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price), worker_rate: Number(p.worker_rate ?? 0) })).sort(byName);
     void cacheSet('products', list);
     setItems(list);
   }, []);
@@ -51,15 +53,15 @@ export function useProducts() {
 
 /** Internetsiz ishlash uchun katalogni oldindan telefonga saqlab qo'yadi */
 export async function prefetchCatalog() {
-  const { data, error } = await supabase.from('products').select('id, legacy_id, name, section, price, unit, sort_order').is('deleted_at', null);
-  if (!error) await cacheSet('products', ((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byName));
+  const { data, error } = await supabase.from('products').select('id, legacy_id, name, section, price, unit, sort_order, worker_rate').is('deleted_at', null);
+  if (!error) await cacheSet('products', ((data ?? []) as Product[]).map((p) => ({ ...p, price: Number(p.price), worker_rate: Number(p.worker_rate ?? 0) })).sort(byName));
 }
 
-export async function saveProduct(p: { id?: string; name: string; section: Section; price: number; unit: string }) {
+export async function saveProduct(p: { id?: string; name: string; section: Section; price: number; unit: string; worker_rate: number }) {
   if (p.id) {
-    return supabase.from('products').update({ name: p.name, section: p.section, price: p.price, unit: p.unit }).eq('id', p.id);
+    return supabase.from('products').update({ name: p.name, section: p.section, price: p.price, unit: p.unit, worker_rate: p.section === 'mahsulot' ? 0 : p.worker_rate }).eq('id', p.id);
   }
-  return supabase.from('products').insert({ name: p.name, section: p.section, price: p.price, unit: p.unit });
+  return supabase.from('products').insert({ name: p.name, section: p.section, price: p.price, unit: p.unit, worker_rate: p.section === 'mahsulot' ? 0 : p.worker_rate });
 }
 
 /** O'chirish = arxivga yuborish (deleted_at). Eski buyurtmalardagi narxlar o'zgarmaydi. */

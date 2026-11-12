@@ -22,6 +22,7 @@ export const PERM_GROUPS: PermGroup[] = [
       { key: 'payments.cancel', label: 'To‘lovni bekor qilish', hint: 'O‘chiq: faqat Admin bekor qiladi' },
       { key: 'discount.give', label: 'Chegirma berish', limit: 'percent' },
       { key: 'reports.view', label: 'Moliyaviy hisobotlar' },
+      { key: 'payroll.manage', label: 'Ishchilar ish haqi', hint: 'Hammaning ish haqini ko‘rish va pul berish. O‘chiq: faqat o‘zinikini ko‘radi' },
     ],
   },
   {
