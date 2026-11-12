@@ -8,6 +8,7 @@ rem  Ishlatish: shu faylni ikki marta bosing.
 rem ============================================================
 cd /d "%~dp0"
 set EAS_NO_VCS=1
+set EAS_PROJECT_ROOT=%cd%
 
 echo.
 echo [1/3] Brauzer versiyasi yig'ilmoqda...
@@ -21,7 +22,7 @@ if errorlevel 1 goto xato
 
 echo.
 echo [3/3] Android ilovalarga yangilanish yuborilmoqda...
-call npx.cmd eas-cli@latest update --channel preview --message "Yangilanish %date% %time:~0,5%" --non-interactive
+call npx.cmd eas-cli@latest update --channel preview --environment preview --message "Yangilanish %date% %time:~0,5%" --non-interactive
 if errorlevel 1 goto xato
 
 echo.
