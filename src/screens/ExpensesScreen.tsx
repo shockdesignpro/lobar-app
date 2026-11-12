@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { Access } from '../lib/auth';
 import { addCategory, addExpense, deleteExpense, isoDay, loadCategories, loadExpenses, useMoneyLive, type Expense, type ExpenseCategory } from '../lib/expenses';
-import { calcNumber, fmtN, fmtSom } from '../lib/format';
+import { calcNumber, fmtN, fmtSom, groupTyping } from '../lib/format';
 import { isNetworkError } from '../lib/offline';
 import { useOrders } from '../lib/orders';
 import { monthKey, monthOptions } from '../lib/payroll';
@@ -145,7 +145,7 @@ function ExpenseSheet({ cats, orders, onCats, onClose, onSaved }: {
 
   return (
     <Sheet visible onClose={onClose} title="Yangi xarajat">
-      <Field label="Summa (so‘m)" placeholder="Masalan: 150 000" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+      <Field label="Summa (so‘m)" placeholder="Masalan: 150 000" value={amount} onChangeText={(v) => setAmount(groupTyping(v))} keyboardType="decimal-pad" />
       <Select label="Turi" value={cat} onChange={setCat}
         options={[...cats.map((c) => ({ key: c.id, label: c.name })), { key: '__new', label: '+ Yangi tur qo‘shish' }]} />
       {cat === '__new' && <Field label="Yangi tur nomi" placeholder="Masalan: Reklama" value={newCat} onChangeText={setNewCat} maxLength={40} />}

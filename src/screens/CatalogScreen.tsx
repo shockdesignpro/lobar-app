@@ -5,7 +5,7 @@ import {
   archiveProduct, catalogCSV, importCatalog, parseCatalogCSV, restoreProduct, saveProduct,
   SECTION_INITIAL, SECTION_SHORT, SECTION_TITLES, UNITS, useProducts, type Product, type Section,
 } from '../lib/catalog';
-import { calcNumber, fmtN } from '../lib/format';
+import { calcNumber, fmtN, groupTyping } from '../lib/format';
 import { Button, Card, Field, Intro, Loading, Note, SearchBox, Sheet } from '../ui/components';
 import { Select } from '../ui/Select';
 import { Icon, type IconName } from '../ui/Icon';
@@ -206,11 +206,11 @@ function ProductSheet({ product, onClose, onSaved }: { product: Product | 'new' 
         </View>
       </View>
       <Field label="Mahsulot nomi" placeholder="Masalan: Karniz 3m" value={name} onChangeText={setName} />
-      <Field label="Narxi (so‘m)" placeholder="Masalan: 60 000" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
+      <Field label="Narxi (so‘m)" placeholder="Masalan: 60 000" value={price} onChangeText={(v) => setPrice(groupTyping(v))} keyboardType="decimal-pad" />
       <Select label="O‘lchov birligi" value={unit} options={unitOptions} onChange={setUnit} />
       {section !== 'mahsulot' && (
         <>
-          <Field label={`Ishchi stavkasi (1 ${unit} uchun, so‘m)`} placeholder="Masalan: 15 000" value={rate} onChangeText={setRate} keyboardType="decimal-pad" />
+          <Field label={`Ishchi stavkasi (1 ${unit} uchun, so‘m)`} placeholder="Masalan: 15 000" value={rate} onChangeText={(v) => setRate(groupTyping(v))} keyboardType="decimal-pad" />
           <Text style={{ fontSize: 12, color: t.muted, lineHeight: 17, marginTop: -4 }}>
             {section === 'tikish' ? 'Tikuvchiga “Dazmolandi” belgilanganda' : 'Ustaga “Pardani o‘rnatish” belgilanganda'} miqdor × stavka hisoblanadi. Bir necha kishi bo‘lsa, teng bo‘linadi.
           </Text>

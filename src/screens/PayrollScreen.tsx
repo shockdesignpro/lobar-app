@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../lib/auth';
-import { calcNumber, fmtN, fmtSom } from '../lib/format';
+import { calcNumber, fmtN, fmtSom, groupTyping } from '../lib/format';
 import {
   addPayout, cancelPayout, loadDetail, loadSummary, monthKey, monthOptions, usePayrollLive,
   type WorkerDetail, type WorkerSummary,
@@ -132,12 +132,11 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
   const pay = async () => {
     const n = calcNumber(amount);
     if (!n || n <= 0) { snack('Summani kiriting'); return; }
-    if (!(await confirmAsk(`${title || 'Ishchi'}ga ${fmtSom(n)} berildi deb yozilsinmi?`, 'Ha, yozilsin'))) return;
     setBusy(true);
     const { error } = await addPayout(staffId, n, note);
     setBusy(false);
     if (error) { snack(errText(error)); return; }
-    setAmount(''); setNote(''); snack('Berilgan pul yozildi'); load();
+    setAmount(''); setNote(''); snack(`${title || 'Ishchi'}ga ${fmtSom(n)} to‘landi`); load();
   };
   const cancel = async (id: string, sum: number) => {
     if (!(await confirmAsk(`${fmtSom(sum)} bekor qilinsinmi?`, 'Bekor qilish'))) return;
@@ -161,10 +160,10 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
 
           {manage && (
             <Card style={{ gap: 10 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: t.text }}>Pul berish</Text>
-              <Field label="Summa (so‘m)" placeholder="Masalan: 500 000" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+              <Text style={{ fontSize: 15, fontWeight: '800', color: t.text }}>Ish haqini to‘lash</Text>
+              <Field label="Summa (so‘m)" placeholder="Masalan: 500 000" value={amount} onChangeText={(v) => setAmount(groupTyping(v))} keyboardType="decimal-pad" />
               <Field label="Izoh (ixtiyoriy)" placeholder="Masalan: avans, oylik" value={note} onChangeText={setNote} maxLength={200} />
-              <Button label="Berildi deb yozish" onPress={pay} busy={busy} />
+              <Button label="Ish haqini to‘lash" onPress={pay} busy={busy} />
             </Card>
           )}
 
@@ -204,7 +203,7 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
                 </View>
               ))}
             </Card>
-          ) : <EmptyCard title="Bu oyda pul berilmagan" text={manage ? 'Yuqoridagi “Pul berish” orqali yozing.' : 'Berilgan pullar shu yerda ko‘rinadi.'} />}
+          ) : <EmptyCard title="Bu oyda pul berilmagan" text={manage ? 'Yuqoridagi “Ish haqini to‘lash” orqali yozing.' : 'Berilgan pullar shu yerda ko‘rinadi.'} />}
         </>
       )}
     </>

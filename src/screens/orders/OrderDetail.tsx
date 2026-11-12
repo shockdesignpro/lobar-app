@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { loadOrderProfit, useMoneyLive, type OrderProfit } from '../../lib/expenses';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../../lib/auth';
-import { calcNumber, fmtN, fmtSom } from '../../lib/format';
+import { calcNumber, fmtN, fmtSom, groupTyping } from '../../lib/format';
 import { costGroups, mqText, openingLabel, type Draft, type Section } from '../../lib/order/model';
 import {
   addPayment, cancelPayment, loadOrderDraft, loadWorkers, ORDER_STEPS, paidSum, payStatus, progressTone, remaining,
@@ -139,7 +139,7 @@ function PaymentBox({ o, access }: { o: OrderListItem; access: Access }) {
       {rest > 0 && can(access, 'payments.add') && (
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
           <Input accessibilityLabel="To‘lov summasi" placeholder="Summa" keyboardType="decimal-pad" value={amount} invalid={bad}
-            onChangeText={(v) => { setAmount(v); setBad(false); }} style={{ flex: 1, backgroundColor: t.card }} />
+            onChangeText={(v) => { setAmount(groupTyping(v)); setBad(false); }} style={{ flex: 1, backgroundColor: t.card }} />
           <Pressable accessibilityRole="button" disabled={busy} onPress={add}
             style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 16, borderRadius: 10, backgroundColor: t.primaryButton, flexDirection: 'row', alignItems: 'center', gap: 6, opacity: pressed || busy ? 0.8 : 1 })}>
             <Icon name="plus" color={t.primaryButtonText} size={16} strokeWidth={2.4} />

@@ -114,7 +114,7 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
                             options={prods.map((p) => ({ key: p.id, label: p.name }))}
                             onChange={(id) => { const p = prods.find((x) => x.id === id); if (p) setDraft((d) => setRowProduct(d, row.id, p)); }} />
                         </View>
-                        <NumberInput accessibilityLabel={`${row.productName} narxi`} value={row.price} format={priceText}
+                        <NumberInput accessibilityLabel={`${row.productName} narxi`} value={row.price} format={priceText} money
                           onValue={(v) => setDraft((d) => setRowPrice(d, row.id, v ?? 0))}
                           style={{ flex: 1.3, textAlign: 'center', fontSize: 14, paddingHorizontal: 2 }} />
                         <NumberInput accessibilityLabel={`${row.productName} miqdori`} value={row.qty} allowEmpty placeholder="1"

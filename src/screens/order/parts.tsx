@@ -1,5 +1,6 @@
 // Buyurtma ekranlari uchun kichik umumiy qismlar
 import { useEffect, useState } from 'react';
+import { groupTyping } from '../../lib/format';
 import { Platform, Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { type CatalogItem, type Section } from '../../lib/order/model';
 import { fmtN } from '../../lib/format';
@@ -31,8 +32,10 @@ export function Input({ invalid, style, onFocus, onBlur, ...p }: TextInputProps 
 }
 
 /** Raqam maydoni: yozayotganda matn o'zgarmaydi, chiqqanda chiroyli formatlanadi */
-export function NumberInput({ value, onValue, allowEmpty, format, ...p }: Omit<TextInputProps, 'value'> & {
+export function NumberInput({ value, onValue, allowEmpty, format, money, ...p }: Omit<TextInputProps, 'value'> & {
   value: number | null; onValue: (v: number | null) => boolean | void; allowEmpty?: boolean; format?: (v: number | null) => string; invalid?: boolean;
+  /** summa: yozish paytida mingliklarga ajratib ko'rsatiladi (1 000, 50 000, 1 000 000) */
+  money?: boolean;
 }) {
   const show = format ?? ((v: number | null) => (v == null ? '' : String(v)));
   const [text, setText] = useState(show(value));
@@ -47,7 +50,8 @@ export function NumberInput({ value, onValue, allowEmpty, format, ...p }: Omit<T
       value={text}
       onFocus={() => setFocused(true)}
       onBlur={() => { setFocused(false); setBad(false); setText(show(value)); }}
-      onChangeText={(v) => {
+      onChangeText={(input) => {
+        const v = money ? groupTyping(input) : input;
         setText(v);
         const raw = v.replace(/\s/g, '').replace(',', '.');
         if (raw === '' && allowEmpty) { setBad(false); onValue(null); return; }

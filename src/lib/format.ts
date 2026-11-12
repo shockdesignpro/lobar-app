@@ -20,3 +20,11 @@ export function calcNumber(val: string): number | null {
 /** O'zbekcha alifbo tartibi, raqamlar tabiiy tartibda (Karniz 2 < Karniz 10) */
 export const byName = (a: { name: string }, b: { name: string }) =>
   String(a.name || '').localeCompare(String(b.name || ''), 'uz', { sensitivity: 'base', numeric: true });
+
+/** Yozish paytidagi ko'rinish: "1500000" -> "1 500 000" (kasr qismi tegmaydi: "2500,5" -> "2 500,5") */
+export function groupTyping(v: string): string {
+  const clean = String(v).replace(/[^\d.,]/g, '');
+  const m = /^(\d*)([.,]\d*)?/.exec(clean);
+  const int = (m?.[1] ?? '').replace(/^0+(?=\d)/, '');
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (m?.[2] ?? '');
+}
