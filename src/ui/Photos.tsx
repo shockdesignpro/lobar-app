@@ -6,6 +6,7 @@ import { usePhotoUrls } from '../lib/photoUrls';
 import { pickPhotos } from '../lib/photos';
 import { Card } from './components';
 import { Icon } from './Icon';
+import { PhotoAnnotator } from './PhotoAnnotator';
 import { useSnack } from './SnackContext';
 import { useTheme } from './ThemeContext';
 
@@ -16,12 +17,16 @@ export function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (
   const snack = useSnack();
   const urls = usePhotoUrls(photos.filter((p) => !p.uri && p.path).map((p) => p.path as string));
   const [view, setView] = useState<number | null>(null);
+  const [drawIdx, setDrawIdx] = useState<number | null>(null);
 
   const add = (source: 'library' | 'camera') => {
     pickPhotos(source).then((list) => {
       if (!list.length) return;
+      const start = photos.length;
       onChange((p) => [...p, ...list.map((uri) => ({ path: null, uri, caption: '' }))]);
-      snack(`${list.length} ta rasm qo‘shildi`);
+      // Kamerada olingan rasm ustiga darhol chizish mumkin
+      if (source === 'camera' && list.length === 1) setTimeout(() => setDrawIdx(start), 0);
+      else snack(`${list.length} ta rasm qo‘shildi — ustiga chizish uchun qalam belgisini bosing`);
     }).catch((e) => snack(e instanceof Error ? e.message : 'Rasm olinmadi'));
   };
   const src = (p: Photo) => p.uri || (p.path ? urls[p.path] : '') || '';
@@ -44,6 +49,10 @@ export function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (
                 style={{ position: 'absolute', top: 5, right: 5, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="close" color="#ffffff" size={14} strokeWidth={2.4} />
               </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Rasm ustiga chizish" onPress={() => setDrawIdx(i)}
+                style={{ position: 'absolute', top: 5, left: 5, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="pen" color="#ffffff" size={14} strokeWidth={2.2} />
+              </Pressable>
               <TextInput accessibilityLabel="Andoza izohi" value={p.caption} placeholder="Izoh yozing" placeholderTextColor={t.muted}
                 onChangeText={(v) => onChange((list) => list.map((x, j) => (j === i ? { ...x, caption: v } : x)))}
                 style={{ minHeight: 36, borderRadius: 8, borderWidth: 1, borderColor: t.border, backgroundColor: t.input, color: t.text, fontSize: 12, paddingLeft: 8, paddingRight: 8 }} />
@@ -60,6 +69,15 @@ export function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (
         </View>
       )}
       <PhotoViewer items={photos.map((p) => ({ src: src(p), caption: p.caption }))} index={view} onIndex={setView} />
+      {drawIdx != null && photos[drawIdx] && src(photos[drawIdx]) ? (
+        <PhotoAnnotator src={src(photos[drawIdx])} onClose={() => setDrawIdx(null)}
+          onSave={(uri) => {
+            const i = drawIdx;
+            // Chizilgan rasm yangi rasm sifatida saqlanadi (buyurtma saqlanganda yuklanadi)
+            onChange((list) => list.map((x, j) => (j === i ? { ...x, path: null, uri } : x)));
+            setDrawIdx(null); snack('Rasm saqlandi');
+          }} />
+      ) : null}
     </Card>
   );
 }

@@ -10,13 +10,16 @@ type Job = { html: string; resolve: (r: { base64: string; width: number; height:
 let queue: Job[] = [];
 let wake: (() => void) | null = null;
 
-export function renderReceiptJpeg(innerHtml: string): Promise<{ base64: string; width: number; height: number }> {
+/** Istalgan sahifani ko'rinmas WebView'da ishga tushirib, u yuborgan JPG'ni qaytaradi */
+export function runCanvasPage(pageHtml: string): Promise<{ base64: string; width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    queue.push({ html: innerHtml, resolve, reject });
-    if (!wake) { reject(new Error('Chek tayyorlagich hali ishga tushmagan')); queue = queue.filter((j) => j.html !== innerHtml); return; }
+    if (!wake) { reject(new Error('Rasm tayyorlagich hali ishga tushmagan')); return; }
+    queue.push({ html: pageHtml, resolve, reject });
     wake();
   });
 }
+
+export const renderReceiptJpeg = (innerHtml: string) => runCanvasPage(page(innerHtml));
 
 /** App ichida bir marta joylanadi (ko'rinmaydi) */
 export function ReceiptRenderer() {
@@ -45,7 +48,7 @@ export function ReceiptRenderer() {
   if (!job) return null;
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: -10000, top: 0, width: 480, height: 900, opacity: 0 }}>
-      <WebView key={job.html.length + job.html.slice(0, 40)} originWhitelist={['*']} source={{ html: page(job.html) }} javaScriptEnabled
+      <WebView key={String(job.html.length) + job.html.slice(-60)} originWhitelist={['*']} source={{ html: job.html }} javaScriptEnabled
         onMessage={(e) => { try { finish(JSON.parse(e.nativeEvent.data)); } catch { finish({ ok: 0 }); } }}
         onError={() => finish({ ok: 0, e: 'Chek sahifasi ochilmadi' })} style={{ width: 480, height: 900, backgroundColor: '#ffffff' }} />
     </View>

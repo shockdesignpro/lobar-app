@@ -4,7 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'back' | 'moon' | 'sun' | 'lock' | 'shield' | 'plus' | 'home' | 'clock' | 'scissors'
   | 'receipt' | 'chevron' | 'users' | 'logout' | 'key' | 'search' | 'edit' | 'trash' | 'download' | 'upload'
-  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud' | 'menu' | 'zap' | 'wallet';
+  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud' | 'menu' | 'zap' | 'wallet' | 'undo' | 'pen';
 
 export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: IconName; size?: number; color: string; strokeWidth?: number }) {
   const p = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -44,6 +44,8 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: Icon
       {name === 'bell' && (<><Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" {...p} /><Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" {...p} /></>)}
       {name === 'calendar' && (<><Rect x="3" y="4" width="18" height="18" rx="2" {...p} /><Path d="M16 2v4M8 2v4M3 10h18" {...p} /></>)}
       {name === 'cloud' && (<><Path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z" {...p} /><Path d="M12 12v6M9 15l3-3 3 3" {...p} /></>)}
+      {name === 'undo' && (<><Path d="M9 14 4 9l5-5" {...p} /><Path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" {...p} /></>)}
+      {name === 'pen' && (<><Path d="M12 20h9" {...p} /><Path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" {...p} /></>)}
       {name === 'wallet' && (<><Path d="M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2.5" {...p} /><Path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" {...p} /></>)}
       {name === 'zap' && <Path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" {...p} />}
       {name === 'menu' && <Path d="M4 7h16M4 12h16M4 17h16" {...p} />}
