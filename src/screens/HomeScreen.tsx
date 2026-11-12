@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../lib/auth';
-import { loadDraft } from '../lib/order/draft';
+import { clearDraft, loadDraft } from '../lib/order/draft';
+import { confirmAsk } from '../ui/confirm';
 import type { Draft } from '../lib/order/model';
 import { fmtN } from '../lib/format';
 import { remaining, stage, useOrders } from '../lib/orders';
@@ -41,6 +42,19 @@ export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
   const canOrder = can(access, 'orders.edit');
   const [draft, setDraftState] = useState<Draft | null>(null);
   useEffect(() => { if (canOrder) loadDraft().then(setDraftState); }, [canOrder]);
+  const draftName = (x: Draft) => x.client.name.trim() || 'Ismsiz mijoz';
+  const removeDraft = async () => {
+    if (!draft || !(await confirmAsk(`Tugallanmagan buyurtma (${draftName(draft)}) o‘chirilsinmi? Kiritilgan ma’lumotlar qaytmaydi.`, 'O‘chirish'))) return;
+    await clearDraft(); setDraftState(null);
+  };
+  // Tugallanmagan buyurtma bo'lsa, yangisini boshlashdan oldin so'raymiz (eski ilovadagidek)
+  const startNew = async () => {
+    if (draft) {
+      if (!(await confirmAsk(`Tugallanmagan buyurtma bor (${draftName(draft)}). Uni o‘chirib, yangi buyurtma boshlaymizmi?`, 'O‘chirib, yangisini boshlash'))) return;
+      await clearDraft(); setDraftState(null);
+    }
+    onNewOrder(null);
+  };
   const full = can(access, 'orders.view_all');
   const money = full && can(access, 'prices.view');
   const { items } = useOrders(full);
@@ -86,7 +100,7 @@ export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
       )}
 
       {canOrder && (
-        <Pressable accessibilityRole="button" onPress={() => onNewOrder(null)}
+        <Pressable accessibilityRole="button" onPress={startNew}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 15, backgroundColor: t.primaryButton, opacity: pressed ? 0.9 : 1 })}>
           <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="plus" color="#ffffff" />
@@ -99,7 +113,22 @@ export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
         </Pressable>
       )}
       {canOrder && draft && (
-        <MenuItem icon="file" title="Tugallanmagan buyurtma" sub={`${draft.client.name || 'Ismsiz mijoz'} · davom ettirish`} onPress={() => onNewOrder(draft)} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 6, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 15 }}>
+          <Pressable accessibilityRole="button" onPress={() => onNewOrder(draft)}
+            style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, opacity: pressed ? 0.85 : 1 })}>
+            <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="file" color={t.teal} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: t.text }}>Tugallanmagan buyurtma</Text>
+              <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }} numberOfLines={1}>{draftName(draft)} · davom ettirish</Text>
+            </View>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Tugallanmagan buyurtmani o‘chirish" onPress={removeDraft}
+            style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 10, borderWidth: 1, borderColor: t.border, backgroundColor: t.input, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+            <Icon name="trash" color={t.red} size={18} />
+          </Pressable>
+        </View>
       )}
 
       {full ? (
