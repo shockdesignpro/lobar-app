@@ -18,6 +18,7 @@ Fayllarni tartib bilan, har birini bir marta ishga tushiring:
 9. `supabase/migrations/0009_payroll_fix.sql` — ish haqi hisobini tuzatish
 10. `supabase/migrations/0010_order_client_snapshot.sql` — har bir buyurtma mijoz ismini o‘zida saqlaydi
 11. `supabase/migrations/0011_pay_per_job.sql` — ish haqini aynan bajarilgan ish uchun to‘lash
+12. `supabase/migrations/0012_change_my_code.sql` — o‘z kodini almashtirishda eski kod so‘raladi
 
 ## 2. Kirish xizmati (staff-login)
 

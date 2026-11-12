@@ -89,7 +89,7 @@ export function PermsTab() {
       <Card style={{ gap: 10 }}>
         <SectionTitle>Tizim (hamma uchun)</SectionTitle>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 14, color: t.text }}>Avtomatik qulflash</Text>
+          <Text style={{ fontSize: 14, color: t.text }}>Avtomatik qulflash (standart)</Text>
           <Text style={{ fontSize: 16, fontWeight: '800', color: t.teal }}>{lock} daqiqa</Text>
         </View>
         <Slider accessibilityLabel="Avtomatik qulflash, daqiqa" minimumValue={1} maximumValue={10} step={1} value={lock}
@@ -99,7 +99,7 @@ export function PermsTab() {
           <Text style={{ fontSize: 11, color: t.muted }}>1 daqiqa</Text>
           <Text style={{ fontSize: 11, color: t.muted }}>10 daqiqa</Text>
         </View>
-        <Note>Ilova shu vaqt ishlatilmasa, qayta kod so‘raydi.</Note>
+        <Note>Ilova shu vaqt ishlatilmasa, qayta kod so‘raydi. Har bir xodim o‘z telefonida ☰ → “Kod va qulflash” sahifasida boshqa vaqt yoki “Qulflanmasin”ni tanlashi mumkin — bu standart faqat tanlamaganlarga amal qiladi.</Note>
       </Card>
 
       <Button label="Saqlash" onPress={save} busy={busy} />

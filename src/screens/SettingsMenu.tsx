@@ -5,8 +5,7 @@ import { Animated, Modal, Pressable, ScrollView, Text, useWindowDimensions, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { can, isAdmin, type Access } from '../lib/auth';
 import { pendingOps } from '../lib/offline';
-import { supabase } from '../lib/supabase';
-import { Badge, Button, Field, NO_SAVE, Note } from '../ui/components';
+import { Badge } from '../ui/components';
 import { useSnack } from '../ui/SnackContext';
 import { useProducts } from '../lib/catalog';
 import { MacrosSheet } from './MacrosSheet';
@@ -14,6 +13,7 @@ import { confirmAsk } from '../ui/confirm';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 import { RemindersSheet } from './RemindersSheet';
+import { CodeLockSheet } from './CodeLockSheet';
 
 export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses }: {
   visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void; onOpenExpenses: () => void;
@@ -25,9 +25,6 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
   const x = useRef(new Animated.Value(panelW)).current;
   const [shown, setShown] = useState(visible);
   const [codeOpen, setCodeOpen] = useState(false);
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [remOpen, setRemOpen] = useState(false);
   const [macrosOpen, setMacrosOpen] = useState(false);
   const snack = useSnack();
@@ -39,20 +36,13 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
       Animated.timing(x, { toValue: 0, duration: 220, useNativeDriver: false }).start();
     } else if (shown) {
       Animated.timing(x, { toValue: panelW, duration: 180, useNativeDriver: false }).start(() => {
-        setShown(false); setCodeOpen(false); setMsg(null); setCode('');
+        setShown(false);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const showAdmin = isAdmin(access) || can(access, 'staff.manage_workers');
-  const saveCode = async () => {
-    setBusy(true); setMsg(null);
-    const { error } = await supabase.rpc('set_staff_code', { p_staff: access.staff_id, p_code: code });
-    setBusy(false);
-    if (error) setMsg({ tone: 'error', text: error.message });
-    else { setMsg({ tone: 'ok', text: 'Kod almashtirildi.' }); setCode(''); setCodeOpen(false); }
-  };
   const go = (fn: () => void) => { onClose(); fn(); };
 
   return (
@@ -99,16 +89,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
                 <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
               )}
               <Row icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => go(() => setTimeout(() => setRemOpen(true), 260))} />
-              <Row icon="key" title="Kodni almashtirish" sub="Shaxsiy kirish kodingiz" open={codeOpen} onPress={() => { setCodeOpen(!codeOpen); setMsg(null); }} />
-              {codeOpen && (
-                <View style={{ gap: 10, padding: 14, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
-                  <Field label="Yangi kod (harf va raqamlar)" value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))}
-                    secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} {...NO_SAVE} />
-                  <Note>{access.level >= 100 ? 'Kamida 8 ta belgi, bo‘sh joysiz.' : access.level >= 50 ? 'Kamida 6 ta belgi, bo‘sh joysiz.' : 'Kamida 4 ta belgi, bo‘sh joysiz.'}</Note>
-                  <Button label="Saqlash" onPress={saveCode} busy={busy} />
-                </View>
-              )}
-              {msg && <Note tone={msg.tone}>{msg.text}</Note>}
+              <Row icon="key" title="Kod va qulflash" sub="Kodni almashtirish, avtomatik qulflash vaqti" onPress={() => go(() => setTimeout(() => setCodeOpen(true), 260))} />
 
               <View style={{ height: 6 }} />
               <Row icon="logout" title="Chiqish" danger onPress={async () => {
@@ -121,6 +102,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
         </View>
       </Modal>
       <RemindersSheet visible={remOpen} onClose={() => setRemOpen(false)} access={access} />
+      {codeOpen && <CodeLockSheet access={access} onClose={() => setCodeOpen(false)} />}
       {macrosOpen && <MacrosEditor onClose={() => setMacrosOpen(false)} onSaved={(m) => { setMacrosOpen(false); snack(m); }} />}
     </>
   );

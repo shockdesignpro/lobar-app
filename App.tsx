@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, BackHandler, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
-  autoLockMinutes, can, getLastActive, hasStoredSession, loadAccess, signOut, touchActive, type Access,
+  can, effectiveLockMinutes, getLastActive, onLockPrefChange, hasStoredSession, loadAccess, signOut, touchActive, type Access,
 } from './src/lib/auth';
 import { onSyncFailure, setCacheScope, startNetworkWatch } from './src/lib/offline';
 import { RemindersSync } from './src/lib/RemindersSync';
@@ -78,7 +78,8 @@ function Root() {
       const a = await refreshAccess();
       if (!a) return;
       const last = await getLastActive();
-      if (last && Date.now() - last > autoLockMinutes(a) * 60_000) setLocked(true);
+      const lockMin = await effectiveLockMinutes(a);
+      if (lockMin > 0 && last && Date.now() - last > lockMin * 60_000) setLocked(true);
       lastActive.current = Date.now();
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -107,9 +108,19 @@ function Root() {
     lastActive.current = Date.now();
   }, []);
 
+  // Qulflash vaqti: xodim o'zi tanlagan (Kod va qulflash sahifasida) yoki Admin belgilagan standart; 0 — qulflanmaydi
+  const [lockMinutes, setLockMinutes] = useState<number | null>(null);
   useEffect(() => {
-    if (phase !== 'app' || locked) return;
-    const minutes = autoLockMinutes(access);
+    if (!access) return;
+    const read = () => { effectiveLockMinutes(access).then(setLockMinutes); };
+    read();
+    return onLockPrefChange(read);
+  }, [access]);
+
+  useEffect(() => {
+    if (phase !== 'app' || locked || lockMinutes == null) return;
+    const minutes = lockMinutes;
+    if (minutes === 0) return; // qulflanmasin
     const check = () => {
       if (Date.now() - lastActive.current > minutes * 60_000) setLocked(true);
     };
@@ -125,7 +136,7 @@ function Root() {
       off = () => evs.forEach((e) => window.removeEventListener(e, h));
     }
     return () => { clearInterval(timer); appSub.remove(); off(); };
-  }, [phase, locked, access, markActive]);
+  }, [phase, locked, lockMinutes, markActive]);
 
   // Telefonning "Orqaga" tugmasi: ilovadan chiqib ketmasdan oldingi sahifaga qaytadi.
   // Bosh sahifada — 2 soniya ichida ikki marta bosilsa, ilova yopiladi.
