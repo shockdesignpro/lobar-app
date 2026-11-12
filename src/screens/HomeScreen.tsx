@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { loadDetail, monthKey } from '../lib/payroll';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../lib/auth';
 import { clearDraft, loadDraft } from '../lib/order/draft';
@@ -33,8 +34,8 @@ export function MenuItem({ icon, title, sub, onPress, danger }: { icon: IconName
   );
 }
 
-export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
-  access: Access; onNewOrder: (resume: Draft | null) => void;
+export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders, onOpenPayroll }: {
+  access: Access; onNewOrder: (resume: Draft | null) => void; onOpenPayroll: () => void;
   onOpenOrder: (id: string) => void; onShowOrders: (preset: OrdersPreset) => void;
 }) {
   const { t } = useTheme();
@@ -64,37 +65,38 @@ export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
   const due = active.filter((o) => o.ready_date && new Date(`${o.ready_date}T00:00:00`) <= tomorrow)
     .sort((a, b) => (a.ready_date ?? '').localeCompare(b.ready_date ?? ''));
   const debt = orders.reduce((n, o) => n + remaining(o), 0);
+  // Tikuvchi/usta: shu oyda hisoblangan haq va umumiy qoldiq
+  const [pay, setPay] = useState<{ earned: number; balance: number } | null>(null);
+  const loadPay = useCallback(() => {
+    if (full) return;
+    loadDetail(access.staff_id, monthKey())
+      .then((x) => setPay({ earned: x.works.reduce((n, w) => n + w.amount, 0), balance: x.balance }))
+      .catch(() => setPay((p) => p ?? { earned: 0, balance: 0 }));
+  }, [full, access.staff_id]);
+  useEffect(loadPay, [loadPay]);
+  useEffect(() => { if (!full) loadPay(); }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
   const recent = orders.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 4);
 
   return (
     <>
       <Intro overline={`${d.getDate()} ${MONTHS[d.getMonth()]} · ${DAYS[d.getDay()]}`.toUpperCase()} title={full ? 'Bugungi ishlar' : 'Mening ishlarim'} />
 
-      {full && (
+      {full ? (
         <>
-          <View style={{ borderRadius: 18, backgroundColor: t.tealDark === '#095c47' ? '#0b6a52' : t.tealMid, padding: 20, overflow: 'hidden' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: '#ffffff', fontSize: 14 }}>Faol buyurtmalar</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
-                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#ffffff' }} />
-                <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '700', letterSpacing: 0.6 }}>ISH JARAYONIDA</Text>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <View style={{ flexShrink: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 12 }}>
-                  <Text style={{ color: '#ffffff', fontSize: 46, fontWeight: '700' }}>{items ? active.length : '…'}</Text>
-                  <Text style={{ color: '#ffffff', fontSize: 13 }}>ta buyurtma</Text>
-                </View>
-                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 10 }}>Har bir buyurtma — e’tiborda.</Text>
-              </View>
-              <CurtainArt color="rgba(255,255,255,0.5)" />
-            </View>
-          </View>
-
+          <BigCard label="Faol buyurtmalar" pill="ISH JARAYONIDA" value={items ? String(active.length) : '…'} unit="ta buyurtma" caption="Har bir buyurtma — e’tiborda." />
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Metric title="Yaqin muddat" value={String(due.length)} unit="ta" sub="Bugun va ertaga" onPress={() => onShowOrders({ sort: 'muddat' })} />
             {money && <Metric title="Qarzdorlik" value={fmtN(debt)} unit="so‘m" sub="To‘lov kutilmoqda" onPress={() => onShowOrders({ pay: 'unpaid' })} />}
+          </View>
+        </>
+      ) : (
+        <>
+          <BigCard label="Bu oy hisobingizga tushdi" pill="ISHBAY" value={pay ? fmtN(pay.earned) : '…'} unit="so‘m"
+            caption="Bajargan ishlaringiz uchun hisoblangan haq." onPress={onOpenPayroll} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Metric title={pay && pay.balance < 0 ? 'Avans' : 'Qoldiq'} value={pay ? fmtN(Math.abs(pay.balance)) : '…'} unit="so‘m"
+              sub={pay && pay.balance < 0 ? 'Oldindan olingan' : 'To‘lanishi kerak'} onPress={onOpenPayroll} />
+            <Metric title="Mening buyurtmalarim" value={items ? String(active.length) : '…'} unit="ta" sub="Ish jarayonida" onPress={() => onShowOrders({ sort: 'muddat' })} />
           </View>
         </>
       )}
@@ -131,18 +133,13 @@ export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders }: {
         </View>
       )}
 
-      {full ? (
-        <>
-          <SectionTitle title="Yaqin topshiriladigan" onAll={() => onShowOrders({ sort: 'muddat' })} />
-          {due.length ? due.slice(0, 3).map((o) => <CompactOrder key={o.id} o={o} showMoney={money} onPress={() => onOpenOrder(o.id)} />)
-            : <EmptyCard title="Yaqin muddatli buyurtma yo‘q" text="Bugun va ertaga topshiriladigan buyurtmalar shu yerda ko‘rinadi." />}
-          <SectionTitle title="Oxirgi buyurtmalar" onAll={() => onShowOrders({ sort: 'yangi' })} />
-          {recent.length ? recent.map((o) => <CompactOrder key={o.id} o={o} showMoney={money} onPress={() => onOpenOrder(o.id)} />)
-            : <EmptyCard title="Birinchi buyurtmangizni yarating" text="Mijozni kiriting, o‘lchamlarni belgilang va chekni saqlang." />}
-        </>
-      ) : orders.length ? orders.map((o) => <CompactOrder key={o.id} o={o} showMoney={false} onPress={() => onOpenOrder(o.id)} />)
+      <SectionTitle title="Yaqin topshiriladigan" onAll={() => onShowOrders({ sort: 'muddat' })} />
+      {due.length ? due.slice(0, 3).map((o) => <CompactOrder key={o.id} o={o} showMoney={money} onPress={() => onOpenOrder(o.id)} />)
+        : <EmptyCard title="Yaqin muddatli buyurtma yo‘q" text="Bugun va ertaga topshiriladigan buyurtmalar shu yerda ko‘rinadi." />}
+      <SectionTitle title="Oxirgi buyurtmalar" onAll={() => onShowOrders({ sort: 'yangi' })} />
+      {recent.length ? recent.map((o) => <CompactOrder key={o.id} o={o} showMoney={money} onPress={() => onOpenOrder(o.id)} />)
+        : full ? <EmptyCard title="Birinchi buyurtmangizni yarating" text="Mijozni kiriting, o‘lchamlarni belgilang va chekni saqlang." />
         : <EmptyCard title="Hozircha ish yo‘q" text="Sizga buyurtma biriktirilganda u shu yerda ko‘rinadi." />}
-
     </>
   );
 }
@@ -160,6 +157,33 @@ function Metric({ title, value, unit, sub, onPress }: { title: string; value: st
         {value}<Text style={{ fontSize: 12, fontWeight: '600', color: t.muted }}> {unit}</Text>
       </Text>
       <Text style={{ fontSize: 11, color: t.muted }}>{sub}</Text>
+    </Pressable>
+  );
+}
+
+/** Asosiy yashil karta (eski bosh sahifadagi "Faol buyurtmalar" kartasi) */
+function BigCard({ label, pill, value, unit, caption, onPress }: { label: string; pill: string; value: string; unit: string; caption: string; onPress?: () => void }) {
+  const { t } = useTheme();
+  return (
+    <Pressable accessibilityRole={onPress ? 'button' : undefined} disabled={!onPress} onPress={onPress}
+      style={({ pressed }) => ({ borderRadius: 18, backgroundColor: t.tealDark === '#095c47' ? '#0b6a52' : t.tealMid, padding: 20, overflow: 'hidden', opacity: pressed ? 0.92 : 1 })}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <Text style={{ color: '#ffffff', fontSize: 14, flexShrink: 1 }}>{label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
+          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#ffffff' }} />
+          <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '700', letterSpacing: 0.6 }}>{pill}</Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <View style={{ flexShrink: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <Text style={{ color: '#ffffff', fontSize: value.length > 7 ? 36 : 46, fontWeight: '700' }}>{value}</Text>
+            <Text style={{ color: '#ffffff', fontSize: 13 }}>{unit}</Text>
+          </View>
+          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 10 }}>{caption}</Text>
+        </View>
+        <CurtainArt color="rgba(255,255,255,0.5)" />
+      </View>
     </Pressable>
   );
 }

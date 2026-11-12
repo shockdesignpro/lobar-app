@@ -194,6 +194,7 @@ function Root() {
           onBack={route.name === 'soon' ? () => (route.tab === 'orders' && orderFocus ? (focusFrom ? goTab(focusFrom) : setOrderFocus(null)) : setRoute({ name: 'home' })) : undefined}>
           {route.name === 'home'
             ? <HomeScreen access={access} onNewOrder={(d) => setRoute({ name: 'order', draft: d })}
+                onOpenPayroll={() => setRoute({ name: 'payroll', staffId: null })}
                 onOpenOrder={openOrder('home')} onShowOrders={showOrders} />
             : route.tab === 'catalog'
               ? <CatalogScreen access={access} />
