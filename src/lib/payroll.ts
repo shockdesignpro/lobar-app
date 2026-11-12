@@ -19,8 +19,10 @@ export function monthOptions(now = new Date()) {
 }
 
 export type WorkerSummary = { staff_id: string; full_name: string; role_id: 'tikuvchi' | 'usta'; is_active: boolean; earned: number; paid: number; balance: number };
-export type Work = { order_id: string; order_no: number | null; client_name: string; task: 'tikish' | 'ornatish'; quantity: number; amount: number; earned_at: string };
-export type Payout = { id: string; amount: number; paid_at: string; note: string | null };
+export type Work = { order_id: string; order_no: number | null; client_name: string; task: 'tikish' | 'ornatish'; quantity: number; amount: number; earned_at: string; paid: number };
+/** Ishning hali to'lanmagan qismi */
+export const unpaidOf = (w: Work) => Math.max(0, Math.round((w.amount - w.paid) * 100) / 100);
+export type Payout = { id: string; amount: number; paid_at: string; note: string | null; task: 'tikish' | 'ornatish' | null; client_name: string | null; order_no: number | null };
 export type WorkerDetail = { works: Work[]; payouts: Payout[]; balance: number };
 
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -38,7 +40,7 @@ export async function loadDetail(staffId: string, key: MonthKey): Promise<Worker
   if (error) throw error;
   const d = data as WorkerDetail;
   return {
-    works: (d.works ?? []).map((w) => ({ ...w, quantity: num(w.quantity), amount: num(w.amount) })),
+    works: (d.works ?? []).map((w) => ({ ...w, quantity: num(w.quantity), amount: num(w.amount), paid: num(w.paid) })),
     payouts: (d.payouts ?? []).map((p) => ({ ...p, amount: num(p.amount) })),
     balance: num(d.balance),
   };
@@ -46,6 +48,10 @@ export async function loadDetail(staffId: string, key: MonthKey): Promise<Worker
 
 export const addPayout = (staffId: string, amount: number, note: string) =>
   supabase.from('worker_payouts').insert({ staff_id: staffId, amount, note: note.trim() || null });
+/** Aynan shu ish uchun to'lash (to'lanmagan qismi) */
+export const payJobs = (staffId: string, works: Work[]) =>
+  supabase.from('worker_payouts').insert(works.filter((w) => unpaidOf(w) > 0)
+    .map((w) => ({ staff_id: staffId, amount: unpaidOf(w), order_id: w.order_id, task: w.task })));
 export const cancelPayout = (id: string) =>
   supabase.from('worker_payouts').update({ cancelled_at: new Date().toISOString() }).eq('id', id);
 

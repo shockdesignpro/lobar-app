@@ -5,8 +5,8 @@ import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../lib/auth';
 import { calcNumber, fmtN, fmtSom, groupTyping } from '../lib/format';
 import {
-  addPayout, cancelPayout, loadDetail, loadSummary, monthKey, monthOptions, usePayrollLive,
-  type WorkerDetail, type WorkerSummary,
+  addPayout, cancelPayout, loadDetail, loadSummary, monthKey, monthOptions, payJobs, unpaidOf, usePayrollLive,
+  type Work, type WorkerDetail, type WorkerSummary,
 } from '../lib/payroll';
 import { isNetworkError } from '../lib/offline';
 import { Badge, Button, Card, Field, Intro, Loading, Note } from '../ui/components';
@@ -121,6 +121,8 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null);
+  const [avansOpen, setAvansOpen] = useState(false);
 
   const load = useCallback(() => {
     loadDetail(staffId, month).then((x) => { setD(x); setErr(''); }).catch((e) => { setErr(errText(e)); setD((x) => x ?? { works: [], payouts: [], balance: 0 }); });
@@ -136,7 +138,18 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
     const { error } = await addPayout(staffId, n, note);
     setBusy(false);
     if (error) { snack(errText(error)); return; }
-    setAmount(''); setNote(''); snack(`${title || 'Ishchi'}ga ${fmtSom(n)} to‘landi`); load();
+    setAmount(''); setNote(''); setAvansOpen(false); snack(`${title || 'Ishchi'}ga ${fmtSom(n)} berildi`); load();
+  };
+  // Aynan bajarilgan ish uchun (yoki oydagi hamma to'lanmagan ishlar uchun) to'lash
+  const payWorks = async (list: Work[], key: string) => {
+    const sum = list.reduce((n, w) => n + unpaidOf(w), 0);
+    if (sum <= 0 || paying) return;
+    setPaying(key);
+    const { error } = await payJobs(staffId, list);
+    setPaying(null);
+    if (error) { snack(errText(error)); return; }
+    snack(list.length === 1 ? `${list[0].client_name}: ${fmtSom(sum)} to‘landi` : `${list.length} ta ish uchun ${fmtSom(sum)} to‘landi`);
+    load();
   };
   const cancel = async (id: string, sum: number) => {
     if (!(await confirmAsk(`${fmtSom(sum)} bekor qilinsinmi?`, 'Bekor qilish'))) return;
@@ -145,6 +158,8 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
   };
 
   const earned = (d?.works ?? []).reduce((n, w) => n + w.amount, 0);
+  const unpaid = (d?.works ?? []).filter((w) => unpaidOf(w) > 0);
+  const unpaidSum = unpaid.reduce((n, w) => n + unpaidOf(w), 0);
   return (
     <>
       <Intro overline={manage ? 'ISH HAQI' : 'MENING ISH HAQIM'} title={title || access.full_name} />
@@ -158,13 +173,8 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
             <Text style={{ fontSize: 12, color: t.muted }}>Shu oyda ishlagani: {fmtSom(earned)}</Text>
           </View>
 
-          {manage && (
-            <Card style={{ gap: 10 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: t.text }}>Ish haqini to‘lash</Text>
-              <Field label="Summa (so‘m)" placeholder="Masalan: 500 000" value={amount} onChangeText={(v) => setAmount(groupTyping(v))} keyboardType="decimal-pad" />
-              <Field label="Izoh (ixtiyoriy)" placeholder="Masalan: avans, oylik" value={note} onChangeText={setNote} maxLength={200} />
-              <Button label="Ish haqini to‘lash" onPress={pay} busy={busy} />
-            </Card>
+          {manage && unpaid.length > 0 && (
+            <Button label={`Hammasini to‘lash · ${fmtSom(unpaidSum)}`} busy={paying === 'all'} onPress={() => payWorks(unpaid, 'all')} />
           )}
 
           <SectionTitle title="Bajarilgan ishlar" />
@@ -179,7 +189,19 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
                       <Text style={{ fontSize: 12, color: t.muted }}>{fmtQty(w.quantity)} · {fmtDate(w.earned_at)}</Text>
                     </View>
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: t.teal }}>{fmtN(w.amount)}</Text>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: t.teal }}>{fmtN(w.amount)}</Text>
+                    {unpaidOf(w) <= 0 ? <Badge label="To‘landi" tone="teal" />
+                      : manage ? (
+                        <Pressable accessibilityRole="button" accessibilityLabel={`${w.client_name}: ${fmtN(unpaidOf(w))} to‘lash`} disabled={!!paying}
+                          onPress={() => payWorks([w], `${w.order_id}${w.task}`)}
+                          style={({ pressed }) => ({ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: t.primaryButton, justifyContent: 'center', opacity: pressed || paying ? 0.7 : 1 })}>
+                          <Text style={{ color: t.primaryButtonText, fontSize: 12, fontWeight: '800' }}>
+                            {paying === `${w.order_id}${w.task}` ? '…' : `To‘lash ${fmtN(unpaidOf(w))}`}
+                          </Text>
+                        </Pressable>
+                      ) : <Badge label={w.paid > 0 ? `Qoldi ${fmtN(unpaidOf(w))}` : 'To‘lanmagan'} tone="amber" />}
+                  </View>
                 </View>
               ))}
             </Card>
@@ -192,7 +214,9 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
                 <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: t.divider }}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ fontSize: 14, fontWeight: '800', color: t.text }}>{fmtSom(p.amount)}</Text>
-                    <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }} numberOfLines={1}>{fmtDate(p.paid_at)}{p.note ? ` · ${p.note}` : ''}</Text>
+                    <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }} numberOfLines={1}>
+                      {fmtDate(p.paid_at)} · {p.task ? `${p.client_name ?? 'Buyurtma'}${p.order_no ? ` №${String(p.order_no).padStart(4, '0')}` : ''}, ${TASK[p.task].toLowerCase()}` : `Avans${p.note ? ` — ${p.note}` : ''}`}
+                    </Text>
                   </View>
                   {manage && (
                     <Pressable accessibilityRole="button" accessibilityLabel="Berilgan pulni bekor qilish" onPress={() => cancel(p.id, p.amount)}
@@ -203,7 +227,25 @@ function WorkerView({ access, staffId, name, month, setMonth, manage }: {
                 </View>
               ))}
             </Card>
-          ) : <EmptyCard title="Bu oyda pul berilmagan" text={manage ? 'Yuqoridagi “Ish haqini to‘lash” orqali yozing.' : 'Berilgan pullar shu yerda ko‘rinadi.'} />}
+          ) : <EmptyCard title="Bu oyda pul berilmagan" text={manage ? 'Bajarilgan ish yonidagi “To‘lash” tugmasi bilan to‘lang.' : 'Berilgan pullar shu yerda ko‘rinadi.'} />}
+
+          {manage && (
+            <Card style={{ gap: 10 }}>
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded: avansOpen }} onPress={() => setAvansOpen(!avansOpen)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ flex: 1, fontSize: 14, fontWeight: '800', color: t.text }}>Avans berish</Text>
+                <View style={{ transform: [{ rotate: avansOpen ? '90deg' : '0deg' }] }}><Icon name="chevron" color={t.muted} size={18} /></View>
+              </Pressable>
+              {avansOpen && (
+                <>
+                  <Text style={{ fontSize: 12, color: t.muted, lineHeight: 17 }}>Ish hali bajarilmagan bo‘lsa, oldindan beriladigan pul. Keyingi ishlaridan qoldiq sifatida ayriladi.</Text>
+                  <Field label="Summa (so‘m)" placeholder="Masalan: 200 000" value={amount} onChangeText={(v) => setAmount(groupTyping(v))} keyboardType="decimal-pad" />
+                  <Field label="Izoh (ixtiyoriy)" placeholder="Masalan: avans" value={note} onChangeText={setNote} maxLength={200} />
+                  <Button kind="soft" label="Avans berish" onPress={pay} busy={busy} />
+                </>
+              )}
+            </Card>
+          )}
         </>
       )}
     </>
