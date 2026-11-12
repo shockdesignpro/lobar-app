@@ -1,9 +1,9 @@
 import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
 import {
-  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
   type TextInputProps, type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { CONTENT_MAX_WIDTH, radius, type Theme } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { useTheme } from './ThemeContext';
@@ -270,37 +270,34 @@ const styles = (t: Theme) => StyleSheet.create({
 // Pastdan chiqadigan oyna (eski ilovadagi modal kabi). Katta ekranda o'rtada, 640 px gacha.
 // ------------------------------------------------------------------
 /**
- * Oyna: telefonda pastdan chiqadi, keng ekranda (iPad, kompyuter — 760px dan) o'rtada
- * ixcham oyna bo'lib ochiladi (eski ilovadagidek).
+ * Alohida sahifa bo'lib ochiladigan oyna (Makroslar, Eslatmalar, yangi xarajat, mahsulot qo'shish...):
+ * tepada "Orqaga" va sarlavha, ostida oddiy sahifadagidek karta.
  */
 export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: ReactNode }) {
   const { t } = useTheme();
-  const wide = useWindowDimensions().width >= 760;
+  const s = styles(t);
   return (
-    <Modal visible={visible} transparent animationType={wide ? 'fade' : 'slide'} onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, justifyContent: wide ? 'center' : 'flex-end', padding: wide ? 24 : 0 }}>
-        <Pressable accessibilityLabel="Yopish" onPress={onClose} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} />
-        <View style={{
-          width: '100%', maxWidth: wide ? 520 : CONTENT_MAX_WIDTH, alignSelf: 'center', maxHeight: wide ? '88%' : '92%', backgroundColor: t.card,
-          borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: wide ? 24 : 0, borderBottomRightRadius: wide ? 24 : 0,
-          borderWidth: 1, borderColor: t.border, overflow: 'hidden',
-        }}>
-          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: wide ? 20 : 12, gap: 14 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {!wide && <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: t.border }} />}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: '800', color: t.text }}>{title}</Text>
-              {wide && (
-                <Pressable accessibilityRole="button" accessibilityLabel="Oynani yopish" onPress={onClose}
-                  style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="close" color={t.teal} size={16} />
-                </Pressable>
-              )}
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaProvider>
+        <SafeAreaView style={s.shell} edges={['top', 'bottom', 'left', 'right']}>
+          <View style={s.topbar}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Orqaga" onPress={onClose} style={s.circleBtn}>
+              <Icon name="back" color={t.teal} strokeWidth={1.9} />
+            </Pressable>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text accessibilityRole="header" style={s.topTitle} numberOfLines={1}>{title}</Text>
+              <Text style={s.brand}>PARDALAR UYI</Text>
             </View>
-            {children}
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+          </View>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, alignItems: 'center' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, gap: 14, padding: 16, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
+                {children}
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
