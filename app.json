@@ -20,6 +20,8 @@
       "versionCode": 1,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
@@ -51,6 +53,15 @@
     ],
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0e0f5120-82c1-4e6e-98d7-bf844d2f3109"
+      }
+    },
+    "owner": "shockdesignpro",
+    "updates": {
+      "url": "https://u.expo.dev/0e0f5120-82c1-4e6e-98d7-bf844d2f3109"
     }
   }
 }
