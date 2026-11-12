@@ -277,7 +277,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
   const { t } = useTheme();
   const s = styles(t);
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="none" onRequestClose={onClose}>
       <SafeAreaProvider>
         <SafeAreaView style={s.shell} edges={['top', 'bottom', 'left', 'right']}>
           <View style={s.topbar}>
