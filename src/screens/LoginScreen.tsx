@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getLastLogin, signIn } from '../lib/auth';
 import { checkLocalCode } from '../lib/offline';
+import { NO_SAVE } from '../ui/components';
 import { Button, Field } from '../ui/components';
 import { Icon } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
@@ -69,11 +70,11 @@ export function LoginScreen({ lockedFor, onSuccess, onSwitchUser }: {
               <View style={{ width: '100%', gap: 12 }}>
                 {!lockedFor && (
                   <Field label="Login" value={login} onChangeText={setLogin} autoCapitalize="none" autoCorrect={false}
-                    autoComplete="username" textContentType="username" returnKeyType="next"
+                    autoComplete="off" importantForAutofill="no" textContentType="none" returnKeyType="next"
                     onSubmitEditing={() => codeRef.current?.focus()} />
                 )}
                 <Field ref={codeRef} label="Shaxsiy kod" big value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))}
-                  secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="password" textContentType="password"
+                  secureTextEntry autoCapitalize="none" autoCorrect={false} {...NO_SAVE}
                   maxLength={32} returnKeyType="go" onSubmitEditing={submit} />
               </View>
 

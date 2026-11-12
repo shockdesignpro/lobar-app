@@ -16,6 +16,16 @@ import { useSync } from '../lib/offline';
 // ------------------------------------------------------------------
 export type Tab = 'home' | 'orders' | 'catalog' | 'reports';
 
+/**
+ * Kod maydonlari uchun: brauzer va telefon kodni eslab qolmasin, o'zi to'ldirmasin
+ * (aks holda brauzerning "parollar" bo'limida saqlanib qoladi).
+ */
+export const NO_SAVE = {
+  autoComplete: (Platform.OS === 'web' ? 'one-time-code' : 'off') as TextInputProps['autoComplete'],
+  importantForAutofill: 'no' as const,
+  textContentType: 'oneTimeCode' as const,
+};
+
 export function Screen({
   title, caption = 'PARDALAR UYI', onBack, children, tab, onTab, right, dock, scrollRef, onMenu,
 }: {

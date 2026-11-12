@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { isAdmin, type Access } from '../../lib/auth';
 import { PERM_GROUPS, ROLE_TONE } from '../../lib/permissions';
 import { supabase } from '../../lib/supabase';
-import { Badge, Button, Card, Field, Loading, Note, SectionTitle, SwitchRow, toneColors } from '../../ui/components';
+import { Badge, Button, Card, Field, Loading, NO_SAVE, Note, SectionTitle, SwitchRow, toneColors } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
 import { Select } from '../../ui/Select';
 import { useTheme } from '../../ui/ThemeContext';
@@ -141,7 +141,7 @@ function StaffRow({ s, me, open, roleName, roles, canManage, admin, onToggle, on
 
           {panel === 'code' && (
             <View style={{ gap: 8 }}>
-              <Field label="Yangi kod (harf va raqamlar)" value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))} secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} />
+              <Field label="Yangi kod (harf va raqamlar)" value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))} secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} {...NO_SAVE} />
               <Button label="Kodni saqlash" busy={busy} onPress={() => run(() => supabase.rpc('set_staff_code', { p_staff: s.id, p_code: code }), 'Kod almashtirildi. Xodimga yangi kodni ayting.')} />
             </View>
           )}
@@ -253,7 +253,7 @@ function AddStaff({ roles, onDone, onCancel }: { roles: Role[]; onDone: (m: Msg)
           ))}
         </View>
       </View>
-      <Field label={`Kod (kamida ${minLen} ta harf yoki raqam)`} value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))} secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} />
+      <Field label={`Kod (kamida ${minLen} ta harf yoki raqam)`} value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))} secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} {...NO_SAVE} />
       {!!err && <Note tone="error">{err}</Note>}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button kind="soft" label="Bekor qilish" onPress={onCancel} style={{ flex: 1 }} />

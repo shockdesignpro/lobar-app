@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { can, isAdmin, type Access } from '../lib/auth';
 import { pendingOps } from '../lib/offline';
 import { supabase } from '../lib/supabase';
-import { Badge, Button, Field, Note } from '../ui/components';
+import { Badge, Button, Field, NO_SAVE, Note } from '../ui/components';
 import { useSnack } from '../ui/SnackContext';
 import { useProducts } from '../lib/catalog';
 import { MacrosSheet } from './MacrosSheet';
@@ -103,7 +103,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
               {codeOpen && (
                 <View style={{ gap: 10, padding: 14, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
                   <Field label="Yangi kod (harf va raqamlar)" value={code} onChangeText={(v) => setCode(v.replace(/\s/g, ''))}
-                    secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} />
+                    secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} {...NO_SAVE} />
                   <Note>{access.level >= 100 ? 'Kamida 8 ta belgi, bo‘sh joysiz.' : access.level >= 50 ? 'Kamida 6 ta belgi, bo‘sh joysiz.' : 'Kamida 4 ta belgi, bo‘sh joysiz.'}</Note>
                   <Button label="Saqlash" onPress={saveCode} busy={busy} />
                 </View>
