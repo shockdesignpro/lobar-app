@@ -15,8 +15,8 @@ import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 import { RemindersSheet } from './RemindersSheet';
 
-export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll }: {
-  visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void;
+export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses }: {
+  visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void; onOpenExpenses: () => void;
 }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -86,6 +86,9 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
 
               {showAdmin && (
                 <Row icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={() => go(onOpenAdmin)} />
+              )}
+              {can(access, 'expenses.manage') && (
+                <Row icon="receipt" title="Xarajatlar" sub="Xarid, ijara, transport va boshqalar" onPress={() => go(onOpenExpenses)} />
               )}
               {can(access, 'payroll.manage') ? (
                 <Row icon="wallet" title="Ish haqi" sub="Tikuvchi va ustalar hisobi" onPress={() => go(onOpenPayroll)} />

@@ -1,5 +1,7 @@
 // Hisobot (eski renderMobileFinance): davr bo'yicha summa, to'langan va qarzdorlik
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { loadProfit, useMoneyLive, type Profit } from '../lib/expenses';
+import { isNetworkError } from '../lib/offline';
 import { Text, View } from 'react-native';
 import { can, type Access } from '../lib/auth';
 import { fmtSom } from '../lib/format';
@@ -49,6 +51,9 @@ export function ReportScreen({ access, onOpenOrder }: { access: Access; onOpenOr
         { key: 'year', label: 'Yillik' }, { key: 'all', label: 'Barchasi' },
       ]} />
 
+      <ProfitBlock period={period} />
+
+      <SectionTitle title="Buyurtmalar" />
       <View style={{ borderRadius: 15, backgroundColor: t.tealLight, padding: 18, gap: 6 }}>
         <Text style={{ fontSize: 13, color: t.teal, fontWeight: '600' }}>Buyurtmalar summasi</Text>
         <Text style={{ fontSize: 28, fontWeight: '800', color: t.teal }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{fmtSom(r.total)}</Text>
@@ -70,5 +75,46 @@ export function ReportScreen({ access, onOpenOrder }: { access: Access; onOpenOr
         ? r.orders.map((o) => <CompactOrder key={o.id} o={o} showMoney showDebt onPress={() => onOpenOrder(o.id)} />)
         : <EmptyCard title="Buyurtmalar yo‘q" text="Tanlangan davrda buyurtma topilmadi." />}
     </>
+  );
+}
+
+/** Sof foyda (kassa bo'yicha): olingan to'lovlar − xarajatlar − hisoblangan ish haqi */
+function ProfitBlock({ period }: { period: Period }) {
+  const { t } = useTheme();
+  const [p, setP] = useState<Profit | null>(null);
+  const [err, setErr] = useState('');
+  const load = useCallback(() => {
+    const from = periodStart(period) ?? new Date(2000, 0, 1);
+    loadProfit(from, new Date(2100, 0, 1))
+      .then((x) => { setP(x); setErr(''); })
+      .catch((e) => setErr(isNetworkError(e) ? 'Internet yo‘q — foyda internet bilan hisoblanadi.' : (e as { message?: string }).message ?? 'Xato'));
+  }, [period]);
+  useEffect(() => { setP(null); load(); }, [load]);
+  useMoneyLive(load);
+
+  if (err) return <Note tone="error">{err}</Note>;
+  if (!p) return <Loading />;
+  const line = (label: string, value: number, sign: '+' | '−', color: string) => (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+      <Text style={{ fontSize: 13, color: t.muted, flex: 1 }}>{label}</Text>
+      <Text style={{ fontSize: 14, fontWeight: '800', color }}>{sign}{fmtSom(value)}</Text>
+    </View>
+  );
+  return (
+    <Card style={{ gap: 10 }}>
+      <Text style={{ fontSize: 13, color: t.muted, fontWeight: '600' }}>Sof foyda</Text>
+      <Text style={{ fontSize: 28, fontWeight: '800', color: p.profit < 0 ? t.red : t.teal }} numberOfLines={1}>{p.profit < 0 ? '−' : ''}{fmtSom(Math.abs(p.profit))}</Text>
+      <View style={{ gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.divider }}>
+        {line('Kassaga tushdi (mijozlardan)', p.income, '+', t.teal)}
+        {line('Xarajatlar', p.expenses, '−', t.red)}
+        {p.categories.map((c) => (
+          <View key={c.name} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, paddingLeft: 12 }}>
+            <Text style={{ fontSize: 12, color: t.muted, flex: 1 }} numberOfLines={1}>{c.name}</Text>
+            <Text style={{ fontSize: 12, color: t.muted }}>{fmtSom(c.amount)}</Text>
+          </View>
+        ))}
+        {line('Ishchilar ish haqi (hisoblangan)', p.payroll, '−', t.red)}
+      </View>
+    </Card>
   );
 }

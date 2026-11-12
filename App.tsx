@@ -19,6 +19,7 @@ import { HomeScreen, type OrdersPreset } from './src/screens/HomeScreen';
 import { ReportScreen } from './src/screens/ReportScreen';
 import { SettingsMenu } from './src/screens/SettingsMenu';
 import { PayrollScreen } from './src/screens/PayrollScreen';
+import { ExpensesScreen } from './src/screens/ExpensesScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { Loading, Screen, type Tab } from './src/ui/components';
 import { SnackProvider, useSnack } from './src/ui/SnackContext';
@@ -36,7 +37,7 @@ export default function App() {
   );
 }
 
-type Route = { name: 'home' } | { name: 'admin' } | { name: 'payroll'; staffId: string | null } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
+type Route = { name: 'home' } | { name: 'admin' } | { name: 'payroll'; staffId: string | null } | { name: 'expenses' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
 
 function Root() {
   const { t, mode } = useTheme();
@@ -171,9 +172,14 @@ function Root() {
       <RemindersSync access={access} />
       <SettingsMenu visible={menuOpen} onClose={() => setMenuOpen(false)} access={access}
         onOpenAdmin={() => { setOrderFocus(null); setRoute({ name: 'admin' }); }} onSignOut={() => { void signOut(); }}
+        onOpenExpenses={() => { setOrderFocus(null); setRoute({ name: 'expenses' }); }}
         onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }} />
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
+      ) : route.name === 'expenses' ? (
+        <Screen title="Xarajatlar" tab="reports" onTab={goTab} onMenu={() => setMenuOpen(true)} onBack={() => setRoute({ name: 'home' })}>
+          <ExpensesScreen access={access} />
+        </Screen>
       ) : route.name === 'payroll' ? (
         <Screen title="Ish haqi" tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}
           onBack={() => (route.staffId && can(access, 'payroll.manage') ? setRoute({ name: 'payroll', staffId: null }) : setRoute({ name: 'home' }))}>

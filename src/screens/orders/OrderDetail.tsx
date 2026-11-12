@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { loadOrderProfit, useMoneyLive, type OrderProfit } from '../../lib/expenses';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../../lib/auth';
 import { calcNumber, fmtN, fmtSom } from '../../lib/format';
@@ -27,6 +28,7 @@ export function OrderDetail({ o, access }: { o: OrderListItem; access: Access })
       <PhotoGallery paths={o.photos} captions={o.photo_captions}
         local={Object.fromEntries((draft?.photos ?? []).filter((p) => p.path && p.uri).map((p) => [p.path as string, p.uri]))} />
       {can(access, 'payments.view') && <PaymentBox o={o} access={access} />}
+      {can(access, 'reports.view') && <OrderProfitBox orderId={o.id} />}
       <StatusPanel o={o} access={access} />
     </View>
   );
@@ -234,5 +236,33 @@ function AssignChips({ title, list, o, task, onToggle }: { title: string; list: 
         </View>
       )}
     </View>
+  );
+}
+
+/** Buyurtma foydasi: summa − bog'langan xarajatlar − ish haqi */
+function OrderProfitBox({ orderId }: { orderId: string }) {
+  const { t } = useTheme();
+  const [p, setP] = useState<OrderProfit | null>(null);
+  const load = useCallback(() => { loadOrderProfit(orderId).then(setP).catch(() => {}); }, [orderId]);
+  useEffect(load, [load]);
+  useMoneyLive(load);
+  if (!p) return null;
+  const row = (label: string, v: string, color = t.text) => (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+      <Text style={{ fontSize: 13, color: t.muted }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '700', color }}>{v}</Text>
+    </View>
+  );
+  return (
+    <Card style={{ gap: 8 }}>
+      <Text style={{ fontSize: 14, fontWeight: '800', color: t.text }}>Buyurtma foydasi</Text>
+      {row('Buyurtma summasi', fmtSom(p.total))}
+      {row('Bog‘langan xarajatlar', `−${fmtSom(p.expenses)}`, p.expenses ? t.red : t.muted)}
+      {row('Ishchilar ish haqi', `−${fmtSom(p.payroll)}`, p.payroll ? t.red : t.muted)}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.divider }}>
+        <Text style={{ fontSize: 14, fontWeight: '800', color: t.text }}>Foyda</Text>
+        <Text style={{ fontSize: 16, fontWeight: '800', color: p.profit < 0 ? t.red : t.teal }}>{p.profit < 0 ? '−' : ''}{fmtSom(Math.abs(p.profit))}</Text>
+      </View>
+    </Card>
   );
 }

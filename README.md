@@ -14,6 +14,7 @@ Fayllarni tartib bilan, har birini bir marta ishga tushiring:
 5. `supabase/migrations/0005_save_order.sql` — buyurtmani saqlash
 6. `supabase/migrations/0006_offline_photos.sql` — internetsiz ishlash, andoza rasmlari, eski ma'lumotlarni ko'chirish
 7. `supabase/migrations/0007_payroll.sql` — ishchilar ish haqi (ishbay)
+8. `supabase/migrations/0008_expenses.sql` — xarajatlar va sof foyda
 
 ## 2. Kirish xizmati (staff-login)
 
