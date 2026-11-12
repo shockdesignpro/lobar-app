@@ -54,7 +54,13 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     }
     if (to > 2) {
       const p = validateServices(draft, catalog);
-      if (p) { setInvalid(p.field); snack(p.message); setDraft((d) => ({ ...d, step: 2 })); return; }
+      if (p) {
+        setInvalid(p.field); snack(p.message); setDraft((d) => ({ ...d, step: 2 }));
+        // Xato qatorning xonasi va derazasini ochib qo'yamiz — darhol ko'rinsin
+        const row = p.field.startsWith('row:') ? draft.rows.find((r) => r.id === p.field.slice(4)) : undefined;
+        if (row) setSel({ roomId: row.roomId, openingId: row.openingId ?? row.linkOpening ?? null });
+        return;
+      }
     }
     setInvalid(null);
     if (to === 2 && step !== 2) setSel({ roomId: draft.rooms[0]?.id ?? null, openingId: undefined });

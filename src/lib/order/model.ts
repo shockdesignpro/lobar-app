@@ -305,12 +305,27 @@ export function validateCustomer(d: Draft): Problem | null {
   return null;
 }
 
+const SECTION_NAME: Record<Section, string> = { mahsulot: 'Xarajatlar', tikish: 'Tikish xizmati', ustanovka: 'O‘rnatish xizmati' };
+
+/** Qator qayerda turibdi: "1. Mehmonxona → Deraza 2 → Xarajatlar" */
+export function rowPlace(d: Draft, row: Row): string {
+  const ri = d.rooms.findIndex((r) => r.id === row.roomId);
+  if (ri < 0) return `Umumiy → ${SECTION_NAME[row.section]}`;
+  const room = d.rooms[ri];
+  const parts = [`${ri + 1}. ${room.name}`];
+  const oid = row.openingId || row.linkOpening;
+  const oi = oid ? room.openings.findIndex((o) => o.id === oid) : -1;
+  if (room.openings.length >= 2) parts.push(oi >= 0 ? openingLabel(room.openings, oi) : 'Umumiy');
+  parts.push(SECTION_NAME[row.section]);
+  return parts.join(' → ');
+}
+
 export function validateServices(d: Draft, catalog: CatalogItem[]): Problem | null {
   if (!d.rows.length) return { field: 'rows', message: 'Kamida bitta mahsulot yoki xizmat qo‘shing' };
   for (const row of d.rows) {
     const known = !!row.productId && catalog.some((p) => p.id === row.productId);
-    if (known && (row.qty == null || !(Number(row.qty) > 0))) return { field: `row:${row.id}`, message: `“${row.productName}” uchun miqdorni kiriting` };
-    if (!known || !Number.isFinite(row.price) || row.price < 0) return { field: `row:${row.id}`, message: 'Har bir qatorda mahsulot, to‘g‘ri narx va musbat miqdor bo‘lishi kerak' };
+    if (known && (row.qty == null || !(Number(row.qty) > 0))) return { field: `row:${row.id}`, message: `“${row.productName}” uchun miqdorni kiriting: ${rowPlace(d, row)}` };
+    if (!known || !Number.isFinite(row.price) || row.price < 0) return { field: `row:${row.id}`, message: `Mahsulot, narx va miqdorni tekshiring: ${rowPlace(d, row)}` };
   }
   if (totals(d).grand <= 0) return { field: 'rows', message: 'Hisob jami 0 so‘m. Narx va miqdorlarni tekshiring' };
   return null;
