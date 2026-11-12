@@ -16,6 +16,7 @@ Fayllarni tartib bilan, har birini bir marta ishga tushiring:
 7. `supabase/migrations/0007_payroll.sql` — ishchilar ish haqi (ishbay)
 8. `supabase/migrations/0008_expenses.sql` — xarajatlar va sof foyda
 9. `supabase/migrations/0009_payroll_fix.sql` — ish haqi hisobini tuzatish
+10. `supabase/migrations/0010_order_client_snapshot.sql` — har bir buyurtma mijoz ismini o‘zida saqlaydi
 
 ## 2. Kirish xizmati (staff-login)
 

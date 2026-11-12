@@ -32,15 +32,15 @@ export function StepClient({ draft, setDraft, catalog, invalid, onNewClient }: {
         </View>
         <View>
           <Label>Mijoz (ism, familya) *</Label>
-          <Input accessibilityLabel="Mijoz ismi" value={c.name} onChangeText={(v) => setClient({ name: v })} invalid={invalid === 'name'} autoCapitalize="words" />
+          <Input accessibilityLabel="Mijoz ismi" autoComplete="off" importantForAutofill="no" value={c.name} onChangeText={(v) => setClient({ name: v })} invalid={invalid === 'name'} autoCapitalize="words" />
         </View>
         <View>
           <Label>Manzil *</Label>
-          <Input accessibilityLabel="Manzil" value={c.address} onChangeText={(v) => setClient({ address: v })} invalid={invalid === 'address'} />
+          <Input accessibilityLabel="Manzil" autoComplete="off" importantForAutofill="no" value={c.address} onChangeText={(v) => setClient({ address: v })} invalid={invalid === 'address'} />
         </View>
         <View>
           <Label>Tel raqam *</Label>
-          <Input accessibilityLabel="Telefon raqami" value={c.phone} keyboardType="phone-pad" invalid={invalid === 'phone'}
+          <Input accessibilityLabel="Telefon raqami" autoComplete="off" importantForAutofill="no" value={c.phone} keyboardType="phone-pad" invalid={invalid === 'phone'}
             onChangeText={(v) => setClient({ phone: normalizePhone(v) })} />
         </View>
         <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: t.divider }}>

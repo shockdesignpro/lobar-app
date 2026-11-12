@@ -78,6 +78,7 @@ export function createdFrom(f: 'all' | 'today' | 'week' | 'month'): number | nul
 type DbOrder = {
   id: string; order_no: number | null; order_year: number | null; created_at: string; ready_date: string | null; total: number | string;
   photos: string[] | null; photo_captions: string[] | null;
+  client_name: string | null; client_phone: string | null; client_address: string | null;
   clients: { name: string; phone: string | null; address: string | null } | null;
   payments: { id: string; amount: number | string; paid_at: string; cancelled_at: string | null; deleted_at: string | null }[];
   order_steps: { step_key: StepKey; done: boolean; deleted_at: string | null }[];
@@ -144,12 +145,12 @@ const cacheName = (full: boolean) => (full ? 'orders.all' : 'orders.work');
 async function fetchOrders(full: boolean): Promise<OrderListItem[]> {
   if (full) {
     const { data, error: e } = await supabase.from('orders')
-      .select('id, order_no, order_year, created_at, ready_date, total, photos, photo_captions, clients(name, phone, address), payments(id, amount, paid_at, cancelled_at, deleted_at), order_steps(step_key, done, deleted_at), order_assignees(staff_id, task, deleted_at)')
+      .select('id, order_no, order_year, created_at, ready_date, total, photos, photo_captions, client_name, client_phone, client_address, clients(name, phone, address), payments(id, amount, paid_at, cancelled_at, deleted_at), order_steps(step_key, done, deleted_at), order_assignees(staff_id, task, deleted_at)')
       .is('deleted_at', null).order('created_at', { ascending: false });
     if (e) throw e;
     return ((data ?? []) as unknown as DbOrder[]).map((o) => ({
       id: o.id, order_no: o.order_no, order_year: o.order_year, created_at: o.created_at, ready_date: o.ready_date, total: Number(o.total),
-      client_name: o.clients?.name ?? 'Mijoz', client_phone: o.clients?.phone ?? null, client_address: o.clients?.address ?? null,
+      client_name: o.client_name ?? o.clients?.name ?? 'Mijoz', client_phone: o.client_phone ?? o.clients?.phone ?? null, client_address: o.client_address ?? o.clients?.address ?? null,
       payments: o.payments.filter((p) => !p.cancelled_at && !p.deleted_at).map((p) => ({ id: p.id, amount: Number(p.amount), paid_at: p.paid_at })).sort((a, b) => a.paid_at.localeCompare(b.paid_at)),
       steps: Object.fromEntries(o.order_steps.filter((s) => !s.deleted_at).map((s) => [s.step_key, s.done])),
       assignees: o.order_assignees.filter((a) => !a.deleted_at).map((a) => ({ staff_id: a.staff_id, task: a.task })),
