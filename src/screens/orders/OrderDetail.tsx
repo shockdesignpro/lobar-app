@@ -204,6 +204,12 @@ function StatusPanel({ o, access }: { o: OrderListItem; access: Access }) {
                 {s.key === 'tikuvchiga_berildi' && canAssign && (
                   <AssignChips title="Tikuvchilar" list={workers.filter((w) => w.role_id === 'tikuvchi')} o={o} task="tikish" onToggle={assign} />
                 )}
+                {checked && canAssign && (s.key === 'dazmolandi' || s.key === 'parda_ornatish')
+                  && !o.assignees.some((a) => a.task === (s.key === 'dazmolandi' ? 'tikish' : 'ornatish')) && (
+                  <Text style={{ marginLeft: 30, marginBottom: 6, fontSize: 12, color: t.amber, lineHeight: 17 }}>
+                    {s.key === 'dazmolandi' ? 'Tikuvchi' : 'Usta'} biriktirilmagan — ish haqi hisoblanmaydi. Yuqorida {s.key === 'dazmolandi' ? 'tikuvchini' : 'ustani'} belgilang.
+                  </Text>
+                )}
                 {s.key === 'karniz_ustanovka' && canAssign && (
                   <AssignChips title="Ustalar" list={workers.filter((w) => w.role_id === 'usta')} o={o} task="ornatish" onToggle={assign} />
                 )}
@@ -257,8 +263,8 @@ function OrderProfitBox({ orderId }: { orderId: string }) {
     <Card style={{ gap: 8 }}>
       <Text style={{ fontSize: 14, fontWeight: '800', color: t.text }}>Buyurtma foydasi</Text>
       {row('Buyurtma summasi', fmtSom(p.total))}
-      {row('Bog‘langan xarajatlar', `−${fmtSom(p.expenses)}`, p.expenses ? t.red : t.muted)}
-      {row('Ishchilar ish haqi', `−${fmtSom(p.payroll)}`, p.payroll ? t.red : t.muted)}
+      {row('Bog‘langan xarajatlar', `${p.expenses ? '−' : ''}${fmtSom(p.expenses)}`, p.expenses ? t.red : t.muted)}
+      {row('Ishchilar ish haqi', `${p.payroll ? '−' : ''}${fmtSom(p.payroll)}`, p.payroll ? t.red : t.muted)}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.divider }}>
         <Text style={{ fontSize: 14, fontWeight: '800', color: t.text }}>Foyda</Text>
         <Text style={{ fontSize: 16, fontWeight: '800', color: p.profit < 0 ? t.red : t.teal }}>{p.profit < 0 ? '−' : ''}{fmtSom(Math.abs(p.profit))}</Text>

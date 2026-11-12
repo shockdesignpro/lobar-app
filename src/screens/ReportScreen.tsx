@@ -97,7 +97,7 @@ function ProfitBlock({ period }: { period: Period }) {
   const line = (label: string, value: number, sign: '+' | '−', color: string) => (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
       <Text style={{ fontSize: 13, color: t.muted, flex: 1 }}>{label}</Text>
-      <Text style={{ fontSize: 14, fontWeight: '800', color }}>{sign}{fmtSom(value)}</Text>
+      <Text style={{ fontSize: 14, fontWeight: '800', color: value ? color : t.muted }}>{value ? sign : ''}{fmtSom(value)}</Text>
     </View>
   );
   return (
@@ -114,6 +114,10 @@ function ProfitBlock({ period }: { period: Period }) {
           </View>
         ))}
         {line('Ishchilar ish haqi (hisoblangan)', p.payroll, '−', t.red)}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, padding: 10, borderRadius: 10, backgroundColor: t.input }}>
+        <Text style={{ fontSize: 12, color: t.muted, flex: 1 }}>Ishchilarga qo‘lga berilgan pul (ma’lumot uchun, foydadan ayrilmaydi)</Text>
+        <Text style={{ fontSize: 13, fontWeight: '800', color: t.text }}>{fmtSom(p.paid_out)}</Text>
       </View>
     </Card>
   );

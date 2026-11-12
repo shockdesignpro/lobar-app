@@ -94,15 +94,17 @@ let view: OrderListItem[] | null = null;
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Internet bor paytda ham bosilgan zahoti ko'rinsin: server javobini kutmasdan ekranga qo'yamiz
+let optimistic: Op[] = [];
 function recompute() {
-  view = store.server ? applyPending(store.server, pendingOps()) : null;
+  view = store.server ? applyPending(applyPending(store.server, pendingOps()), optimistic, false) : null;
   listeners.forEach((f) => f());
 }
 
 /** Navbatdagi o'zgarishlarni ro'yxat ustiga qo'yadi (ekranda darhol ko'rinishi uchun) */
-export function applyPending(list: OrderListItem[], ops: Queued[] | Op[]): OrderListItem[] {
+export function applyPending(list: OrderListItem[], ops: Queued[] | Op[], markPending = true): OrderListItem[] {
   let out = list.map((o) => ({ ...o }));
-  const mark = (id: string, fn: (o: OrderListItem) => OrderListItem) => { out = out.map((o) => (o.id === id ? { ...fn(o), pending: true } : o)); };
+  const mark = (id: string, fn: (o: OrderListItem) => OrderListItem) => { out = out.map((o) => (o.id === id ? { ...fn(o), pending: markPending || o.pending } : o)); };
   for (const op of ops) {
     switch (op.kind) {
       case 'save_order': {
@@ -110,14 +112,14 @@ export function applyPending(list: OrderListItem[], ops: Queued[] | Op[]): Order
         if (out.some((o) => o.id === it.id)) {
           mark(it.id, (o) => ({ ...o, client_name: it.client_name, client_phone: it.client_phone, client_address: it.client_address,
             ready_date: it.ready_date, total: it.total, photos: it.photos, photo_captions: it.photo_captions }));
-        } else out = [{ ...it, pending: true }, ...out];
+        } else out = [{ ...it, pending: markPending }, ...out];
         break;
       }
       case 'payment_add':
         mark(op.order_id, (o) => (o.payments.some((p) => p.id === op.id) ? o : { ...o, payments: [...o.payments, { id: op.id, amount: op.amount, paid_at: op.paid_at }] }));
         break;
       case 'payment_cancel':
-        out = out.map((o) => (o.payments.some((p) => p.id === op.id) ? { ...o, payments: o.payments.filter((p) => p.id !== op.id), pending: true } : o));
+        out = out.map((o) => (o.payments.some((p) => p.id === op.id) ? { ...o, payments: o.payments.filter((p) => p.id !== op.id), pending: markPending || o.pending } : o));
         break;
       case 'step':
         mark(op.order_id, (o) => ({ ...o, steps: { ...o.steps, [op.step]: op.done } }));
@@ -244,11 +246,16 @@ export function useOrders(fullAccess: boolean) {
 // ---- Amallar (internet bo'lmasa navbatga qo'yiladi) ----
 type ActResult = { error: { message: string } | null; queued?: boolean };
 async function act(op: Op, label: string): Promise<ActResult> {
+  optimistic = [...optimistic, op];
+  recompute();
+  const drop = () => { optimistic = optimistic.filter((x) => x !== op); recompute(); };
   try {
     const r = await perform(op, label);
-    if (!r.queued) scheduleReload();
+    if (r.queued) drop(); // endi navbat ko'rsatadi
+    else void reloadOrders().finally(drop);
     return { error: null, queued: r.queued };
   } catch (e) {
+    drop(); // server rad etdi — avvalgi holatga qaytadi
     return { error: { message: e instanceof Error ? e.message : 'Xato' } };
   }
 }

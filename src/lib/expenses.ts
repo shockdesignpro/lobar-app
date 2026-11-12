@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 
 export type ExpenseCategory = { id: string; name: string; sort_order: number; is_default: boolean };
 export type Expense = { id: string; category_id: string; amount: number; spent_on: string; note: string | null; order_id: string | null };
-export type Profit = { income: number; expenses: number; payroll: number; profit: number; categories: { name: string; amount: number }[] };
+export type Profit = { income: number; expenses: number; payroll: number; paid_out: number; profit: number; categories: { name: string; amount: number }[] };
 export type OrderProfit = { total: number; expenses: number; payroll: number; profit: number };
 
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -37,7 +37,7 @@ export async function loadProfit(from: Date, to: Date): Promise<Profit> {
   const { data, error } = await supabase.rpc('profit_report', { p_from: from.toISOString(), p_to: to.toISOString() });
   if (error) throw error;
   const d = data as Profit;
-  return { income: num(d.income), expenses: num(d.expenses), payroll: num(d.payroll), profit: num(d.profit),
+  return { income: num(d.income), expenses: num(d.expenses), payroll: num(d.payroll), paid_out: num(d.paid_out), profit: num(d.profit),
     categories: (d.categories ?? []).map((c) => ({ name: c.name, amount: num(c.amount) })) };
 }
 export async function loadOrderProfit(orderId: string): Promise<OrderProfit | null> {
