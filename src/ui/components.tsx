@@ -59,15 +59,18 @@ export function Screen({
       </View>
       <SyncBar />
 
-      <ScrollView
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={s.scroll}
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        <View style={s.content}>{children}</View>
-      </ScrollView>
+      {/* Klaviatura ochilganda sahifa uning ustidan ko'tariladi — yozilayotgan maydon yopilib qolmaydi */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={{ flex: 1 }}>
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={s.scroll}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          <View style={s.content}>{children}</View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {dock ?? (tab && onTab && (
         <View style={s.nav} accessibilityRole="tablist">
@@ -299,7 +302,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
               <Text style={s.brand}>PARDALAR UYI</Text>
             </View>
           </View>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={{ flex: 1 }}>
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, alignItems: 'center' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, gap: 14, padding: 16, borderRadius: 15, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
                 {children}

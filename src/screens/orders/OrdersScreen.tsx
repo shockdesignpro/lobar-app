@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { OrdersPreset } from '../HomeScreen';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../../lib/auth';
 import type { Draft } from '../../lib/order/model';
 import {
@@ -68,7 +68,7 @@ export function OrdersScreen({ access, onEdit, focusId, setFocusId, preset }: {
         receipts.current.set(o.id, img);
         // iPhone'da ulashish oynasi faqat bevosita bosishda ochiladi: rasm tayyor, yana bir bor bosiladi
         if (isIOS()) { snack('Chek tayyor — ulashish uchun yana bir bor bosing'); return; }
-        downloadReceipt(img);
+        if (Platform.OS === 'web') void downloadReceipt(img);
       }
       if (!(await shareReceipt(img)) && !isIOS()) downloadReceipt(img);
     } catch (e) { snack(e instanceof Error ? e.message : 'Chek tayyorlanmadi'); }

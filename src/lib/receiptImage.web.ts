@@ -25,9 +25,10 @@ export async function makeReceiptImage(innerHtml: string, fileName: string): Pro
   }
 }
 
-export function downloadReceipt(img: ReceiptImage) {
+export async function downloadReceipt(img: ReceiptImage): Promise<boolean> {
   const a = document.createElement('a');
   a.download = img.fileName; a.href = img.uri; a.click();
+  return true;
 }
 
 /** Ulashish oynasi. true — ochildi, false — qo'llab-quvvatlanmaydi */

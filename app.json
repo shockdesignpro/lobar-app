@@ -19,8 +19,8 @@
       "package": "uz.lobarparda.app",
       "versionCode": 1,
       "blockedPermissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VIDEO",
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ]
@@ -34,8 +34,6 @@
     },
     "scheme": "lobarparda",
     "plugins": [
-      "expo-sqlite",
-      "expo-secure-store",
       [
         "expo-notifications",
         {
@@ -49,7 +47,16 @@
           "cameraPermission": "Andoza rasmini kamerada olish uchun ruxsat kerak.",
           "microphonePermission": false
         }
-      ]
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Chek rasmini galereyaga saqlash uchun ruxsat kerak.",
+          "savePhotosPermission": "Chek rasmini galereyaga saqlash uchun ruxsat kerak.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "./plugins/withAbis.js"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { BackHandler, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { type Access } from '../../lib/auth';
 import { useProducts } from '../../lib/catalog';
 import { fmtSom } from '../../lib/format';
@@ -91,11 +91,23 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
       const now = existing ? new Date(existing.created_at).getTime() : Date.now();
       const img = await makeReceiptImage(receiptHtml(draft, { number: orderNumber(result), date: now }), receiptFileName(draft.client.name, now));
       setReceipt(img);
-      if (autoDownloadAfterSave()) { downloadReceipt(img); snack('Chek rasmi saqlandi'); }
+      if (autoDownloadAfterSave()) {
+        const ok = await downloadReceipt(img);
+        snack(ok ? (Platform.OS === 'web' ? 'Chek rasmi saqlandi' : 'Chek rasmi galereyaga saqlandi') : 'Chek tayyor — “Ulashish” orqali yuboring');
+      }
     } catch (e) {
       snack('Chek rasmini tayyorlab bo‘lmadi: ' + (e instanceof Error ? e.message : ''));
     } finally { setReceiptBusy(false); }
   };
+
+  // Telefonning "Orqaga" tugmasi: oldingi qadamga, 1-qadamda — bosh sahifaga (qoralama saqlanib qoladi)
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (saved || step === 1) onExit(); else goStep((step - 1) as 1 | 2);
+      return true;
+    });
+    return () => sub.remove();
+  });
 
   const newClient = async () => {
     if (isDraftEmpty(draft)) return;
@@ -126,7 +138,8 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
         {receipt && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button label="Ulashish" icon="upload" style={{ flex: 1 }} onPress={async () => { if (!(await shareReceipt(receipt))) snack('Bu qurilmada ulashish yo‘q — “Yuklab olish”ni bosing'); }} />
-            {Platform.OS === 'web' && <Button kind="soft" label="Yuklab olish" icon="download" style={{ flex: 1 }} onPress={() => downloadReceipt(receipt)} />}
+            <Button kind="soft" label={Platform.OS === 'web' ? 'Yuklab olish' : 'Galereyaga saqlash'} icon="download" style={{ flex: 1 }}
+              onPress={async () => { const ok = await downloadReceipt(receipt); if (Platform.OS !== 'web') snack(ok ? 'Galereyaga saqlandi' : 'Galereyaga ruxsat berilmadi'); }} />
           </View>
         )}
         <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>

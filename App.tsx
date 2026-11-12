@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, View } from 'react-native';
+import { AppState, BackHandler, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   autoLockMinutes, can, getLastActive, hasStoredSession, loadAccess, signOut, touchActive, type Access,
@@ -8,6 +8,7 @@ import {
 import { onSyncFailure, setCacheScope, startNetworkWatch } from './src/lib/offline';
 import { RemindersSync } from './src/lib/RemindersSync';
 import { prefetchCatalog } from './src/lib/catalog';
+import { ReceiptRenderer } from './src/ui/ReceiptRenderer';
 import { loadMacros } from './src/lib/order/draft';
 import { supabase } from './src/lib/supabase';
 import { AdminScreen } from './src/screens/admin/AdminScreen';
@@ -126,12 +127,41 @@ function Root() {
     return () => { clearInterval(timer); appSub.remove(); off(); };
   }, [phase, locked, access, markActive]);
 
+  // Telefonning "Orqaga" tugmasi: ilovadan chiqib ketmasdan oldingi sahifaga qaytadi.
+  // Bosh sahifada — 2 soniya ichida ikki marta bosilsa, ilova yopiladi.
+  const backRef = useRef<() => boolean>(() => false);
+  const lastBack = useRef(0);
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => backRef.current());
+    return () => sub.remove();
+  }, []);
+
   const goTab = (tab: Tab) => {
     setOrderFocus(null); setFocusFrom(null);
     if (tab === 'orders') setPreset((x) => ({ n: x.n + 1, p: null }));
     setRoute(tab === 'home' ? { name: 'home' } : { name: 'soon', tab });
   };
   const openOrder = (from: Tab) => (id: string) => { setFocusFrom(from); setOrderFocus(id); setRoute({ name: 'soon', tab: 'orders' }); };
+  backRef.current = () => {
+    if (phase !== 'app' || locked || !access) return false;
+    if (menuOpen) { setMenuOpen(false); return true; }
+    if (route.name === 'order') return true; // buyurtma oynasi o'zi boshqaradi
+    if (route.name === 'payroll') {
+      setRoute(route.staffId && can(access, 'payroll.manage') ? { name: 'payroll', staffId: null } : { name: 'home' });
+      return true;
+    }
+    if (route.name === 'expenses' || route.name === 'admin') { setRoute({ name: 'home' }); return true; }
+    if (route.name === 'soon') {
+      if (route.tab === 'orders' && orderFocus) { if (focusFrom) goTab(focusFrom); else setOrderFocus(null); }
+      else goTab('home');
+      return true;
+    }
+    const now = Date.now();
+    if (now - lastBack.current < 2000) return false;
+    lastBack.current = now;
+    snack('Chiqish uchun yana bir marta bosing');
+    return true;
+  };
   const showOrders = (p: OrdersPreset) => { setOrderFocus(null); setFocusFrom(null); setPreset((x) => ({ n: x.n + 1, p })); setRoute({ name: 'soon', tab: 'orders' }); };
 
   if (phase === 'boot') {
@@ -170,6 +200,7 @@ function Root() {
       onMoveShouldSetResponderCapture={() => { markActive(); return false; }}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <RemindersSync access={access} />
+      <ReceiptRenderer />
       <SettingsMenu visible={menuOpen} onClose={() => setMenuOpen(false)} access={access}
         onOpenAdmin={() => { setOrderFocus(null); setRoute({ name: 'admin' }); }} onSignOut={() => { void signOut(); }}
         onOpenExpenses={() => { setOrderFocus(null); setRoute({ name: 'expenses' }); }}
