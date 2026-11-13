@@ -25,6 +25,7 @@ import { ExpensesScreen } from './src/screens/ExpensesScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileSheet } from './src/screens/ProfileSheet';
 import { TrashScreen } from './src/screens/TrashScreen';
+import { InboxScreen } from './src/screens/InboxScreen';
 import { Loading, Screen, TabsContext, type Tab } from './src/ui/components';
 import { SnackProvider, useSnack } from './src/ui/SnackContext';
 import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
@@ -41,7 +42,7 @@ export default function App() {
   );
 }
 
-type Route = { name: 'home' } | { name: 'admin' } | { name: 'trash' } | { name: 'payroll'; staffId: string | null } | { name: 'expenses' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
+type Route = { name: 'home' } | { name: 'admin' } | { name: 'trash' } | { name: 'inbox' } | { name: 'payroll'; staffId: string | null } | { name: 'expenses' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
 
 function Root() {
   const { t, mode } = useTheme();
@@ -181,7 +182,7 @@ function Root() {
       setRoute(route.staffId && can(access, 'payroll.manage') ? { name: 'payroll', staffId: null } : { name: 'home' });
       return true;
     }
-    if (route.name === 'expenses' || route.name === 'admin' || route.name === 'trash') { setRoute({ name: 'home' }); return true; }
+    if (route.name === 'expenses' || route.name === 'admin' || route.name === 'trash' || route.name === 'inbox') { setRoute({ name: 'home' }); return true; }
     if (route.name === 'soon') {
       if (route.tab === 'orders' && orderFocus) { if (focusFrom) goTab(focusFrom); else setOrderFocus(null); }
       else goTab('home');
@@ -241,7 +242,8 @@ function Root() {
         onOpenExpenses={() => { setOrderFocus(null); setRoute({ name: 'expenses' }); }}
         onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }} />
+        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }}
+        onOpenInbox={() => { setOrderFocus(null); setRoute({ name: 'inbox' }); }} />
       {profileOpen && <ProfileSheet access={access} onClose={() => setProfileOpen(false)} onSaved={refreshAccess} />}
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
@@ -253,6 +255,10 @@ function Root() {
         <Screen title={worker ? 'Mening ish haqim' : 'Ish haqi'} tab={worker ? 'pay' : 'home'} onTab={goTab} onMenu={() => setMenuOpen(true)}
           onBack={() => (route.staffId && can(access, 'payroll.manage') ? setRoute({ name: 'payroll', staffId: null }) : setRoute({ name: 'home' }))}>
           <PayrollScreen access={access} staffId={route.staffId} setStaffId={(id) => setRoute({ name: 'payroll', staffId: id })} />
+        </Screen>
+      ) : route.name === 'inbox' ? (
+        <Screen title="Bildirishnomalar" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
+          <InboxScreen onOpen={(x) => setPushTarget({ orderId: x.orderId, screen: x.screen === 'payroll' || x.screen === 'orders' ? x.screen : undefined })} />
         </Screen>
       ) : route.name === 'trash' ? (
         <Screen title="Korzinka" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>

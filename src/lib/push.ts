@@ -28,8 +28,24 @@ export async function registerPush(): Promise<void> {
     const projectId: string | undefined = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     const { error } = await supabase.rpc('register_push_token', { p_token: token, p_platform: Platform.OS });
-    if (!error) await AsyncStorage.setItem(KEY, token);
+    if (!error) {
+      await AsyncStorage.setItem(KEY, token);
+      await showMissed();
+    }
   } catch { /* Firebase sozlanmagan eski APK yoki internet yo'q */ }
+}
+
+/** Ilovaga kirilmagan paytda kelgan (telefonga yetmagan) xabarlarni birdaniga ko'rsatadi */
+async function showMissed() {
+  const { data, error } = await supabase.rpc('take_missed_notifications');
+  if (error || !Array.isArray(data)) return;
+  for (const n of data as { id: number; title: string; body: string; data: Record<string, unknown> }[]) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: `missed-${n.id}`,
+      content: { title: n.title, body: n.body, data: n.data ?? {}, sound: 'default' },
+      trigger: Platform.OS === 'android' ? { channelId: 'orders' } : null,
+    });
+  }
 }
 
 /** Chiqishdan oldin: bu telefonga endi oldingi xodimning xabarlari kelmasin */

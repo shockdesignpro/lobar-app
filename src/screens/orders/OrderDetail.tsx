@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Avatar } from '../../ui/Avatar';
 import { loadOrderProfit, useMoneyLive, type OrderProfit } from '../../lib/expenses';
 import { Pressable, Text, View } from 'react-native';
@@ -158,7 +158,9 @@ function StatusPanel({ o, access }: { o: OrderListItem; access: Access }) {
   const [open, setOpen] = useState(false);
   const [workers, setWorkers] = useState<StaffLite[]>([]);
   const canAssign = can(access, 'orders.assign');
-  useEffect(() => { if (open && canAssign) loadWorkers().then(setWorkers); }, [open, canAssign]);
+  // Ishchilar ro'yxati oldindan yuklanadi — panel ochilgach qatorlar siljimasin (noto'g'ri bosqich bosilib ketmasin)
+  useEffect(() => { if (canAssign) loadWorkers().then(setWorkers); }, [canAssign]);
+  const busy = useRef(new Set<StepKey>());
   const done = stepsDone(o);
   const pct = Math.round((done / ORDER_STEPS.length) * 100);
   const tone = progressTone(pct);
@@ -169,9 +171,15 @@ function StatusPanel({ o, access }: { o: OrderListItem; access: Access }) {
 
   const toggle = async (k: StepKey) => {
     if (!mine(k)) { snack('Bu bosqichni belgilashga ruxsatingiz yo‘q'); return; }
-    const { error } = await setStep(o.id, k, !o.steps[k]);
-    if (error) snack(error.message);
+    if (busy.current.has(k)) return; // shu bosqich hali saqlanmoqda — ikkinchi bosish e'tiborsiz
+    busy.current.add(k);
+    try {
+      const { error } = await setStep(o.id, k, !o.steps[k]);
+      if (error) snack(error.message);
+    } finally { busy.current.delete(k); }
   };
+  const missing = (['dazmolandi', 'parda_ornatish'] as StepKey[]).filter((k) => o.steps[k] && canAssign
+    && !o.assignees.some((a) => a.task === (k === 'dazmolandi' ? 'tikish' : 'ornatish')));
   const assign = async (w: StaffLite, on: boolean) => {
     const { error } = await setAssignee(o.id, w.id, w.role_id === 'usta' ? 'ornatish' : 'tikish', on);
     if (error) snack(error.message);
@@ -196,7 +204,7 @@ function StatusPanel({ o, access }: { o: OrderListItem; access: Access }) {
             return (
               <View key={s.key}>
                 <Pressable accessibilityRole="checkbox" accessibilityState={{ checked, disabled: !allowed }} onPress={() => toggle(s.key)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: allowed ? 1 : 0.6 }}>
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 40, paddingVertical: 8, opacity: allowed ? 1 : 0.6 }}>
                   <View style={{ width: 20, height: 20, borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: checked ? t.tealMid : t.card, borderWidth: checked ? 0 : 1.5, borderColor: t.border }}>
                     {checked && <Icon name="check" color="#ffffff" size={14} strokeWidth={3} />}
                   </View>
@@ -205,18 +213,18 @@ function StatusPanel({ o, access }: { o: OrderListItem; access: Access }) {
                 {s.key === 'tikuvchiga_berildi' && canAssign && (
                   <AssignChips title="Tikuvchilar" list={workers.filter((w) => w.role_id === 'tikuvchi')} o={o} task="tikish" onToggle={assign} />
                 )}
-                {checked && canAssign && (s.key === 'dazmolandi' || s.key === 'parda_ornatish')
-                  && !o.assignees.some((a) => a.task === (s.key === 'dazmolandi' ? 'tikish' : 'ornatish')) && (
-                  <Text style={{ marginLeft: 30, marginBottom: 6, fontSize: 12, color: t.amber, lineHeight: 17 }}>
-                    {s.key === 'dazmolandi' ? 'Tikuvchi' : 'Usta'} biriktirilmagan — ish haqi hisoblanmaydi. Yuqorida {s.key === 'dazmolandi' ? 'tikuvchini' : 'ustani'} belgilang.
-                  </Text>
-                )}
                 {s.key === 'karniz_ustanovka' && canAssign && (
                   <AssignChips title="Ustalar" list={workers.filter((w) => w.role_id === 'usta')} o={o} task="ornatish" onToggle={assign} />
                 )}
               </View>
             );
           })}
+          {/* Ogohlantirish ro'yxat ostida — bosqichlar orasiga tushib, qatorlarni siljitmaydi */}
+          {missing.map((k) => (
+            <Text key={k} style={{ fontSize: 12, color: t.amber, lineHeight: 17 }}>
+              {k === 'dazmolandi' ? 'Tikuvchi' : 'Usta'} biriktirilmagan — ish haqi hisoblanmaydi. Yuqorida {k === 'dazmolandi' ? 'tikuvchini' : 'ustani'} belgilang.
+            </Text>
+          ))}
         </View>
       )}
     </Card>

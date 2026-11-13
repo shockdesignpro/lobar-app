@@ -176,21 +176,41 @@ async function fetchOrders(full: boolean): Promise<OrderListItem[]> {
   })).sort((a, b) => (a.ready_date ?? '9999').localeCompare(b.ready_date ?? '9999'));
 }
 
+// So'rovlar tartibi: bir vaqtda bir nechta yangilash ketayotgan bo'lsa, kechroq boshlangani
+// ustun turadi — eski (o'zgarishdan oldingi) javob kech kelib, belgini qaytarib qo'ymasin.
+let reqSeq = 0;
+let appliedSeq = 0;
+const seqWaiters: { need: number; fn: () => void }[] = [];
+const wakeWaiters = () => {
+  for (const w of seqWaiters.filter((x) => x.need <= appliedSeq)) { seqWaiters.splice(seqWaiters.indexOf(w), 1); w.fn(); }
+};
+/** Shu paytdan keyin boshlangan yangilash ekranga tushguncha kutadi */
+function untilFresh(): Promise<void> {
+  const need = reqSeq + 1;
+  return new Promise((fn) => { seqWaiters.push({ need, fn }); void reloadOrders(); });
+}
+
 export async function reloadOrders() {
   const full = store.full;
   if (full == null) return;
+  const my = ++reqSeq;
   try {
     const list = await fetchOrders(full);
-    if (store.full !== full) return;
+    if (my < appliedSeq) return;
+    appliedSeq = my;
+    if (store.full !== full) { wakeWaiters(); return; }
     store.server = list; store.error = '';
     void cacheSet(cacheName(full), list);
     void prefetchDrafts(list, full);
   } catch (e) {
+    if (my < appliedSeq) return;
+    appliedSeq = my;
     if (isNetworkError(e)) { setOnline(false); store.error = ''; }
     else store.error = e instanceof Error ? e.message : (e as { message?: string }).message ?? 'Xato';
     if (!store.server) store.server = [];
   }
   recompute();
+  wakeWaiters();
 }
 // Faol buyurtmalar tarkibini (xonalar, o'lchamlar) oldindan telefonga saqlaymiz —
 // usta internetsiz joyda ham o'lchamlarni ko'ra olishi uchun. Har buyurtma sessiyada bir marta.
@@ -253,7 +273,7 @@ async function act(op: Op, label: string): Promise<ActResult> {
   try {
     const r = await perform(op, label);
     if (r.queued) drop(); // endi navbat ko'rsatadi
-    else void reloadOrders().finally(drop);
+    else void untilFresh().finally(drop);
     return { error: null, queued: r.queued };
   } catch (e) {
     drop(); // server rad etdi — avvalgi holatga qaytadi

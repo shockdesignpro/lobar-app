@@ -13,10 +13,11 @@ import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 import { RemindersSheet } from './RemindersSheet';
 import { Avatar } from '../ui/Avatar';
+import { unreadCount } from '../lib/inbox';
 
-export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash }: {
+export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash, onOpenInbox }: {
   visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void; onOpenExpenses: () => void;
-  onOpenProfile: () => void; onOpenTrash: () => void;
+  onOpenProfile: () => void; onOpenTrash: () => void; onOpenInbox: () => void;
 }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -27,6 +28,8 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
   const [remOpen, setRemOpen] = useState(false);
   const [macrosOpen, setMacrosOpen] = useState(false);
   const snack = useSnack();
+  const [unread, setUnread] = useState(0);
+  useEffect(() => { if (visible) unreadCount().then(setUnread); }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -85,6 +88,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
               {can(access, 'catalog.edit') && (
                 <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
               )}
+              <Row icon="inbox" title="Bildirishnomalar" sub={unread ? `${unread} ta yangi xabar` : 'Kelgan xabarlar'} badge={unread} onPress={() => go(onOpenInbox)} />
               <Row icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => go(() => setTimeout(() => setRemOpen(true), 260))} />
               {(isAdmin(access) || can(access, 'archive.send') || can(access, 'catalog.edit')) && (
                 <Row icon="trash" title="Korzinka" sub="O‘chirilgan buyurtma, mahsulot va xizmatlar" onPress={() => go(onOpenTrash)} />
@@ -106,7 +110,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
   );
 }
 
-function Row({ icon, title, sub, onPress, danger, open }: { icon: IconName; title: string; sub?: string; onPress: () => void; danger?: boolean; open?: boolean }) {
+function Row({ icon, title, sub, onPress, danger, open, badge }: { icon: IconName; title: string; sub?: string; onPress: () => void; danger?: boolean; open?: boolean; badge?: number }) {
   const { t } = useTheme();
   return (
     <Pressable accessibilityRole="button" onPress={onPress}
@@ -118,6 +122,11 @@ function Row({ icon, title, sub, onPress, danger, open }: { icon: IconName; titl
         <Text style={{ fontSize: 15, fontWeight: '700', color: danger ? t.red : t.text }}>{title}</Text>
         {sub && <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }} numberOfLines={1}>{sub}</Text>}
       </View>
+      {!!badge && (
+        <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: t.red, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }}>{badge > 99 ? '99+' : badge}</Text>
+        </View>
+      )}
       {!danger && <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><Icon name="chevron" color={t.muted} size={18} /></View>}
     </Pressable>
   );
