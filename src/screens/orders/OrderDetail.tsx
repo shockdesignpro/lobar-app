@@ -15,6 +15,7 @@ import { Icon } from '../../ui/Icon';
 import { useSnack } from '../../ui/SnackContext';
 import { useTheme } from '../../ui/ThemeContext';
 import { Input } from '../order/parts';
+import { rowsByCurtain } from '../../lib/receipt';
 import { PhotoGallery } from '../../ui/Photos';
 
 /** Ochilgan buyurtma: xonalar, to'lovlar, ish holati va biriktirilganlar */
@@ -44,7 +45,7 @@ function RoomsDetails({ draft, showMoney }: { draft: Draft; showMoney: boolean }
     <>
       {groups.map((g, gi) => {
         const key = g.room?.id ?? 'other';
-        const isOpen = !!open[key];
+        const isOpen = open[key] ?? true;
         return (
           <Card key={key} padded={false}>
             <Pressable accessibilityRole="button" accessibilityState={{ expanded: isOpen }} onPress={() => setOpen({ ...open, [key]: !isOpen })}
@@ -67,12 +68,19 @@ function RoomsDetails({ draft, showMoney }: { draft: Draft; showMoney: boolean }
                       <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }}>{['Harajatlar', 'Tikish xizmati', 'O‘rnatish xizmati'][i]}</Text>
                       {showMoney && <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }}>{fmtSom(g.sums[s])}</Text>}
                     </View>
-                    {g.rows[s].map((r) => (
-                      <View key={r.id} style={{ flexDirection: 'row', gap: 6, paddingVertical: 5, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: t.divider }}>
-                        <Text style={{ flex: 1, fontSize: 12, color: t.text }}>{r.productName}</Text>
-                        {showMoney && <Text style={{ width: 58, fontSize: 12, color: t.muted }}>{fmtN(r.price)}</Text>}
-                        <Text style={{ width: 40, fontSize: 12, color: t.muted }}>×{mqText(r.qty)}</Text>
-                        {showMoney && <Text style={{ width: 70, fontSize: 12, fontWeight: '700', color: t.text, textAlign: 'right' }}>{fmtN((r.qty ?? 0) * r.price)}</Text>}
+                    {rowsByCurtain(g.rows[s], g.room?.openings ?? [], openingLabel).map((cg) => (
+                      <View key={cg.label || 'all'}>
+                        {!!cg.label && (
+                          <Text style={{ paddingTop: 7, paddingBottom: 3, paddingHorizontal: 4, fontSize: 12, fontWeight: '800', color: t.tealDark, borderBottomWidth: 1, borderBottomColor: t.divider }}>{cg.label}</Text>
+                        )}
+                        {cg.rows.map((r) => (
+                          <View key={r.id} style={{ flexDirection: 'row', gap: 6, paddingVertical: 5, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: t.divider }}>
+                            <Text style={{ flex: 1, fontSize: 12, color: t.text }}>{r.productName}</Text>
+                            {showMoney && <Text style={{ width: 58, fontSize: 12, color: t.muted }}>{fmtN(r.price)}</Text>}
+                            <Text style={{ width: 40, fontSize: 12, color: t.muted }}>×{mqText(r.qty)}</Text>
+                            {showMoney && <Text style={{ width: 70, fontSize: 12, fontWeight: '700', color: t.text, textAlign: 'right' }}>{fmtN((r.qty ?? 0) * r.price)}</Text>}
+                          </View>
+                        ))}
                       </View>
                     ))}
                   </View>

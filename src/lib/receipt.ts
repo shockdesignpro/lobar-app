@@ -23,14 +23,19 @@ function curtainLabel(openings: Opening[], idx: number) {
   return (kind === 'eshik' ? '🚪 Eshik ' : '🪟 Deraza ') + count;
 }
 
-function rowsHtml(rows: Row[], curtains: Opening[]) {
-  const line = (r: Row) => `<div class="room-item"><span>${esc(r.productName)}</span><span>${fmtN(r.price)}</span><span>×${esc(mqText(r.qty))}</span><strong>${fmtN((r.qty ?? 0) * r.price)}</strong></div>`;
-  if (curtains.length < 2) return rows.map(line).join('');
+/** Xona ichidagi qatorlarni har bir deraza/eshik bo'yicha ajratadi (chekdagidek). Bitta parda bo'lsa — ajratilmaydi. */
+export function rowsByCurtain(rows: Row[], curtains: Opening[], label: (curtains: Opening[], idx: number) => string = curtainLabel) {
+  if (curtains.length < 2) return [{ label: '', rows }];
   const key = (r: Row) => r.openingId || r.linkOpening || '';
-  const groups = curtains.map((c, j) => ({ label: curtainLabel(curtains, j), rows: rows.filter((r) => key(r) === c.id) }));
+  const groups = curtains.map((c, j) => ({ label: label(curtains, j), rows: rows.filter((r) => key(r) === c.id) }));
   const other = rows.filter((r) => !curtains.some((c) => c.id === key(r)));
   if (other.length) groups.push({ label: 'Umumiy', rows: other });
-  return groups.filter((g) => g.rows.length).map((g) => `<div class="room-subhead">${g.label}</div>${g.rows.map(line).join('')}`).join('');
+  return groups.filter((g) => g.rows.length);
+}
+
+function rowsHtml(rows: Row[], curtains: Opening[]) {
+  const line = (r: Row) => `<div class="room-item"><span>${esc(r.productName)}</span><span>${fmtN(r.price)}</span><span>×${esc(mqText(r.qty))}</span><strong>${fmtN((r.qty ?? 0) * r.price)}</strong></div>`;
+  return rowsByCurtain(rows, curtains).map((g) => `${g.label ? `<div class="room-subhead">${g.label}</div>` : ''}${g.rows.map(line).join('')}`).join('');
 }
 
 export type ReceiptMeta = { number: string; date: number };
