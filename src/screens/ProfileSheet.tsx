@@ -1,14 +1,17 @@
 // Shaxsiy profil: rasm, ism, kod va avtomatik qulflash — hammasi bitta sahifada
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View, type ViewStyle } from 'react-native';
 import { type Access } from '../lib/auth';
 import { pickAvatar } from '../lib/photos';
 import { saveProfile } from '../lib/profile';
 import { Avatar } from '../ui/Avatar';
-import { Badge, Button, Field, Note, Sheet } from '../ui/components';
+import { Button, Field, Note, Sheet } from '../ui/components';
+import { Icon, type IconName } from '../ui/Icon';
 import { useSnack } from '../ui/SnackContext';
 import { useTheme } from '../ui/ThemeContext';
 import { CodeLockForm } from './CodeLockForm';
+
+const AV = 112;
 
 export function ProfileSheet({ access, onClose, onSaved }: { access: Access; onClose: () => void; onSaved: () => Promise<unknown> }) {
   const { t } = useTheme();
@@ -41,15 +44,27 @@ export function ProfileSheet({ access, onClose, onSaved }: { access: Access; onC
   return (
     <Sheet visible onClose={onClose} title="Profil">
       <View style={{ alignItems: 'center', gap: 10 }}>
-        <Avatar name={name || access.full_name} path={photo === undefined ? access.avatar : null} uri={shownUri} size={96} />
-        <Badge label={access.role_name} tone="teal" />
-      </View>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Button label="Rasmga olish" icon="camera" kind="soft" onPress={() => pick('camera')} style={{ flex: 1 }} />
-        <Button label="Galereyadan" icon="image" kind="soft" onPress={() => pick('library')} style={{ flex: 1 }} />
+        <View style={{ width: AV, height: AV }}>
+          {hasPhoto ? (
+            <Avatar name={name || access.full_name} path={photo === undefined ? access.avatar : null} uri={shownUri} size={AV} />
+          ) : (
+            // Rasm yo'q: fotoapparat belgisi — bosilsa kamera ochiladi
+            <Pressable accessibilityRole="button" accessibilityLabel="Rasmga olish" onPress={() => pick('camera')}
+              style={({ pressed }) => ({ width: AV, height: AV, borderRadius: AV / 2, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
+              <Icon name="camera" color={t.teal} size={38} strokeWidth={1.6} />
+            </Pressable>
+          )}
+          {/* Chap pastda — galereyadan tanlash */}
+          <RoundBtn icon="image" label="Galereyadan tanlash" onPress={() => pick('library')} style={{ left: -2 }} />
+          {/* O'ng pastda — qalamcha: rasmni kamerada qayta olish */}
+          {hasPhoto && <RoundBtn icon="pen" label="Rasmni o‘zgartirish (kamera)" onPress={() => pick('camera')} style={{ right: -2 }} />}
+        </View>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: t.teal }}>{access.role_name}</Text>
       </View>
       {hasPhoto && (
-        <Button label="Rasmni olib tashlash" icon="trash" kind="soft" onPress={() => setPhoto(null)} />
+        <Pressable accessibilityRole="button" onPress={() => setPhoto(null)} style={{ alignSelf: 'center', paddingVertical: 4, paddingHorizontal: 10 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: t.red }}>Rasmni olib tashlash</Text>
+        </Pressable>
       )}
       <Field label="Ism" value={name} onChangeText={setName} maxLength={60} autoCapitalize="words" autoComplete="off" />
       <Text style={{ fontSize: 12, color: t.muted, marginTop: -6 }}>Login: {access.login}</Text>
@@ -59,5 +74,16 @@ export function ProfileSheet({ access, onClose, onSaved }: { access: Access; onC
       <View style={{ height: 1, backgroundColor: t.divider, marginVertical: 4 }} />
       <CodeLockForm access={access} />
     </Sheet>
+  );
+}
+
+function RoundBtn({ icon, label, onPress, style }: { icon: IconName; label: string; onPress: () => void; style: ViewStyle }) {
+  const { t } = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={6}
+      style={({ pressed }) => [{ position: 'absolute', bottom: -2, width: 38, height: 38, borderRadius: 19, backgroundColor: t.teal,
+        borderWidth: 3, borderColor: t.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 }, style]}>
+      <Icon name={icon} color="#ffffff" size={16} strokeWidth={2.2} />
+    </Pressable>
   );
 }

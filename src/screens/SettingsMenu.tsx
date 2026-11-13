@@ -5,7 +5,6 @@ import { Animated, Modal, Pressable, ScrollView, Text, useWindowDimensions, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { can, isAdmin, type Access } from '../lib/auth';
 import { pendingOps } from '../lib/offline';
-import { Badge } from '../ui/components';
 import { useSnack } from '../ui/SnackContext';
 import { useProducts } from '../lib/catalog';
 import { MacrosSheet } from './MacrosSheet';
@@ -67,12 +66,9 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
               <Pressable accessibilityRole="button" accessibilityLabel="Profilni ochish" onPress={() => go(() => setTimeout(onOpenProfile, 200))}
                 style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 15, backgroundColor: t.tealLight, opacity: pressed ? 0.85 : 1 })}>
                 <Avatar name={access.full_name} path={access.avatar} size={44} />
-                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <Text style={{ fontSize: 15, fontWeight: '800', color: t.text }} numberOfLines={1}>{access.full_name}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Badge label={access.role_name} tone="teal" />
-                    <Text style={{ fontSize: 12, color: t.teal, fontWeight: '600' }}>Profil</Text>
-                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: t.teal }} numberOfLines={1}>{access.role_name}</Text>
                 </View>
                 <Icon name="chevron" color={t.teal} size={18} />
               </Pressable>
