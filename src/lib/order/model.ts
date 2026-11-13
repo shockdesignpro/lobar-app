@@ -246,9 +246,9 @@ export function setRowQty(d: Draft, rowId: string, qty: number | null): Draft {
 }
 
 /** Makros: mahsulotlarni miqdori bo'sh holda tanlangan xona/derazaga qo'shadi */
-export function applyMacro(d: Draft, products: CatalogItem[], target: CostTarget, newId: NewId): Draft {
+export function applyMacro(d: Draft, products: CatalogItem[], target: CostTarget, newId: NewId, section: Section = 'mahsulot'): Draft {
   const rows: Row[] = products.map((p) => ({
-    id: newId(), section: 'mahsulot', productId: p.id, productName: p.name, unit: p.unit, price: p.price,
+    id: newId(), section, productId: p.id, productName: p.name, unit: p.unit, price: p.price,
     qty: null, roomId: target.roomId, openingId: target.openingId, linkOpening: null, autoSync: false,
   }));
   return { ...d, rows: [...d.rows, ...rows] };

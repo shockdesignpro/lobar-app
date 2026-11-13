@@ -1,3 +1,4 @@
+import type { Section } from './model';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -49,17 +50,13 @@ export async function bumpUsage(productIds: string[]) {
 }
 
 // ---- Makroslar ----
-export type Macro = { id: string; kind: 'baget' | 'potolok'; name: string; product_ids: string[] };
+export type Macro = { id: string; name: string; section: Section; product_ids: string[] };
 export async function loadMacros(): Promise<Macro[]> {
-  const { data, error } = await supabase.from('macros').select('id, kind, name, product_ids').is('deleted_at', null).order('sort_order');
-  let list = (data as Macro[] | null) ?? [];
+  const { data, error } = await supabase.from('macros').select('id, kind, name, section, product_ids').is('deleted_at', null).order('sort_order');
+  let list = ((data as (Macro & { section?: Section })[] | null) ?? []).map((m) => ({ id: m.id, name: m.name, section: m.section ?? 'mahsulot', product_ids: m.product_ids ?? [] }));
   if (error) list = (await cacheGet<Macro[]>('macros')) ?? [];
   else void cacheSet('macros', list);
-  const defaults: Macro[] = [
-    { id: 'baget', kind: 'baget', name: 'Baget', product_ids: [] },
-    { id: 'potolok', kind: 'potolok', name: 'Potolok karniz', product_ids: [] },
-  ];
-  return defaults.map((d) => list.find((m) => m.kind === d.kind) ?? d);
+  return list;
 }
 
 // ---- Saqlash ----

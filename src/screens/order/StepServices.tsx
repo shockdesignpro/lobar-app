@@ -45,10 +45,10 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
   };
 
   const runMacro = (m: Macro) => {
-    const pool = catalog.filter((p) => p.section === 'mahsulot');
+    const pool = catalog.filter((p) => p.section === m.section);
     const list = m.product_ids.map((id) => pool.find((p) => p.id === id)).filter((p): p is CatalogItem => !!p);
     if (!list.length) { snack(`“${m.name}” makrosiga mahsulot biriktirilmagan`); return; }
-    setDraft((d) => applyMacro(d, list, target, newId));
+    setDraft((d) => applyMacro(d, list, target, newId, m.section));
     const missing = m.product_ids.length - list.length;
     snack(`${m.name}: ${list.length} ta mahsulot qo‘shildi — miqdorlarini kiriting${missing ? ` (${missing} tasi katalogda topilmadi)` : ''}`);
   };
@@ -85,9 +85,9 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
         const rows = draft.rows.filter((r) => r.section === section && isCurrentRow(draft, r, target));
         return (
           <View key={section} style={{ gap: 8 }}>
-            <SectionHeader icon={meta.icon} title={meta.title} right={section === 'mahsulot' ? (
+            <SectionHeader icon={meta.icon} title={meta.title} right={macros.some((m) => m.section === section) ? (
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                {macros.map((m) => <SoftButton key={m.id} label={m.name} small onPress={() => runMacro(m)} />)}
+                {macros.filter((m) => m.section === section).map((m) => <SoftButton key={m.id} label={m.name} small onPress={() => runMacro(m)} />)}
               </View>
             ) : undefined} />
             <Card style={{ gap: 10 }}>
