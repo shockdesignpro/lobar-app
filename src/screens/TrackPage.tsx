@@ -1,7 +1,7 @@
 // Mijoz uchun kuzatish sahifasi (kirishsiz): https://parda.expo.app/?t=<kod>
 // Pardasi qaysi bosqichda, qachon tayyor bo'ladi, to'lov holati va buyurtma tarkibi.
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { fmtN } from '../lib/format';
 import { mqText, openingLabel, type Opening } from '../lib/order/model';
 import { fetchTrack, type TrackData, type TrackItem, type TrackOpening } from '../lib/track';
@@ -80,7 +80,11 @@ export function TrackPage({ token }: { token: string }) {
 
 function Tracked({ d }: { d: Extract<TrackData, { closed: false }> }) {
   const current = d.steps.findIndex((s) => !s.done);
-  const status = current === -1 ? 'O‘rnatildi' : d.steps[current].label;
+  // Sarlavhada hozirgi holat (hali tugamagan bosqich — hozirgi zamonda)
+  const NOW: Record<string, string> = {
+    bought: 'Mato xarid qilinmoqda', sewing: 'Tikilmoqda', ready: 'Tikilmoqda', installed: 'Tayyor, o‘rnatish kutilmoqda',
+  };
+  const status = current === -1 ? 'O‘rnatildi' : NOW[d.steps[current].key] ?? d.steps[current].label;
   const pct = d.total > 0 ? Math.min(1, d.paid / d.total) : 1;
   const no = d.order_no ? `№${String(d.order_no).padStart(4, '0')}` : '';
 
@@ -106,7 +110,7 @@ function Tracked({ d }: { d: Extract<TrackData, { closed: false }> }) {
                   <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
                     backgroundColor: s.done ? C.teal : isCur ? C.tealLight : C.card, borderWidth: s.done ? 0 : 2, borderColor: isCur ? C.teal : C.border }}>
                     {s.done ? <Icon name="check" color="#ffffff" size={14} strokeWidth={3} />
-                      : isCur ? <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: C.teal }} /> : null}
+                      : isCur ? <PulseDot /> : null}
                   </View>
                   {!last && <View style={{ width: 2, flex: 1, minHeight: 22, backgroundColor: s.done ? C.teal : C.border }} />}
                 </View>
@@ -124,9 +128,7 @@ function Tracked({ d }: { d: Extract<TrackData, { closed: false }> }) {
       {/* To'lov */}
       <Box>
         <Text style={{ fontSize: 15, fontWeight: '800', color: C.text }}>To‘lov</Text>
-        <View style={{ height: 8, borderRadius: 4, backgroundColor: C.divider, overflow: 'hidden', marginTop: 10 }}>
-          <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: C.teal }} />
-        </View>
+        <GlowBar pct={pct} />
         <Line label="Umumiy summa" value={`${fmtN(d.total)} so‘m`} bold />
         {d.discount_percent > 0 && <Line label="Chegirma" value={`${fmtN(d.discount_percent)}%`} />}
         <Line label="To‘langan" value={`${fmtN(d.paid)} so‘m`} />
@@ -217,6 +219,61 @@ function Line({ label, value, bold, color }: { label: string; value: string; bol
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
       <Text style={{ fontSize: 14, color: C.muted }}>{label}</Text>
       <Text style={{ fontSize: 14, fontWeight: bold ? '800' : '600', color: color ?? C.text }}>{value}</Text>
+    </View>
+  );
+}
+
+/** To'lov chizig'i: chapdan o'ngga to'lib boradi, ustidan yorug' "nur" yugurib turadi */
+function GlowBar({ pct }: { pct: number }) {
+  const fill = useRef(new Animated.Value(0)).current;
+  const shine = useRef(new Animated.Value(0)).current;
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    Animated.timing(fill, { toValue: pct, duration: 1400, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [pct, fill]);
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.delay(600),
+      Animated.timing(shine, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+      Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: false }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [shine]);
+  const filled = Math.max(0, w * pct);
+  return (
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ height: 10, borderRadius: 5, backgroundColor: C.divider, marginTop: 12 }}>
+      <Animated.View style={{
+        width: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }), height: '100%', borderRadius: 5, overflow: 'hidden',
+        backgroundColor: C.teal, shadowColor: '#1ec99a', shadowOpacity: 0.85, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
+      }}>
+        {/* Yugurib yuruvchi yorug'lik */}
+        <Animated.View style={{
+          position: 'absolute', top: 0, bottom: 0, width: 46,
+          transform: [{ translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [-60, filled + 20] }) }],
+          ...({ backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%)' } as object),
+        }} />
+      </Animated.View>
+    </View>
+  );
+}
+
+/** Hozirgi bosqich nuqtasi: atrofida to'lqin tarqalib turadi */
+function PulseDot() {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.timing(a, { toValue: 1, duration: 1600, easing: Easing.out(Easing.quad), useNativeDriver: false }));
+    loop.start();
+    return () => loop.stop();
+  }, [a]);
+  return (
+    <View style={{ width: 10, height: 10, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{
+        position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: C.teal,
+        opacity: a.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] }),
+        transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [1, 3.4] }) }],
+      }} />
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.teal }} />
     </View>
   );
 }
