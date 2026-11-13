@@ -23,7 +23,9 @@ import { SettingsMenu } from './src/screens/SettingsMenu';
 import { PayrollScreen } from './src/screens/PayrollScreen';
 import { ExpensesScreen } from './src/screens/ExpensesScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
-import { Loading, Screen, type Tab } from './src/ui/components';
+import { ProfileSheet } from './src/screens/ProfileSheet';
+import { TrashScreen } from './src/screens/TrashScreen';
+import { Loading, Screen, TabsContext, type Tab } from './src/ui/components';
 import { SnackProvider, useSnack } from './src/ui/SnackContext';
 import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
 
@@ -39,7 +41,7 @@ export default function App() {
   );
 }
 
-type Route = { name: 'home' } | { name: 'admin' } | { name: 'payroll'; staffId: string | null } | { name: 'expenses' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
+type Route = { name: 'home' } | { name: 'admin' } | { name: 'trash' } | { name: 'payroll'; staffId: string | null } | { name: 'expenses' } | { name: 'soon'; tab: Tab } | { name: 'order'; draft: Draft | null };
 
 function Root() {
   const { t, mode } = useTheme();
@@ -50,6 +52,7 @@ function Root() {
   const [orderFocus, setOrderFocus] = useState<string | null>(null);
   const [focusFrom, setFocusFrom] = useState<Tab | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [preset, setPreset] = useState<{ n: number; p: OrdersPreset | null }>({ n: 0, p: null });
   const lastActive = useRef(Date.now());
   const accessRef = useRef<Access | null>(null);
@@ -166,18 +169,19 @@ function Root() {
   const goTab = (tab: Tab) => {
     setOrderFocus(null); setFocusFrom(null);
     if (tab === 'orders') setPreset((x) => ({ n: x.n + 1, p: null }));
-    setRoute(tab === 'home' ? { name: 'home' } : { name: 'soon', tab });
+    setRoute(tab === 'home' ? { name: 'home' } : tab === 'pay' ? { name: 'payroll', staffId: null } : { name: 'soon', tab });
   };
   const openOrder = (from: Tab) => (id: string) => { setFocusFrom(from); setOrderFocus(id); setRoute({ name: 'soon', tab: 'orders' }); };
   backRef.current = () => {
     if (phase !== 'app' || locked || !access) return false;
     if (menuOpen) { setMenuOpen(false); return true; }
+    if (profileOpen) { setProfileOpen(false); return true; }
     if (route.name === 'order') return true; // buyurtma oynasi o'zi boshqaradi
     if (route.name === 'payroll') {
       setRoute(route.staffId && can(access, 'payroll.manage') ? { name: 'payroll', staffId: null } : { name: 'home' });
       return true;
     }
-    if (route.name === 'expenses' || route.name === 'admin') { setRoute({ name: 'home' }); return true; }
+    if (route.name === 'expenses' || route.name === 'admin' || route.name === 'trash') { setRoute({ name: 'home' }); return true; }
     if (route.name === 'soon') {
       if (route.tab === 'orders' && orderFocus) { if (focusFrom) goTab(focusFrom); else setOrderFocus(null); }
       else goTab('home');
@@ -218,9 +222,13 @@ function Root() {
   }
 
   const tab: Tab = route.name === 'soon' ? route.tab : 'home';
-  const soonTitles: Record<Tab, string> = { home: 'Asosiy', orders: 'Buyurtmalar', catalog: 'Katalog', reports: 'Hisobot' };
+  const soonTitles: Record<Tab, string> = { home: 'Asosiy', orders: 'Buyurtmalar', catalog: 'Katalog', reports: 'Hisobot', pay: 'Ish haqim' };
+  // Tikuvchi va usta: Katalog va Hisobot yo'q, o'rniga "Ish haqim"
+  const worker = access.role === 'tikuvchi' || access.role === 'usta';
+  const tabs: Tab[] = worker ? ['home', 'orders', 'pay'] : ['home', 'orders', 'catalog', 'reports'];
 
   return (
+    <TabsContext.Provider value={tabs}>
     <View
       style={{ flex: 1 }}
       onStartShouldSetResponderCapture={() => { markActive(); return false; }}
@@ -231,7 +239,10 @@ function Root() {
       <SettingsMenu visible={menuOpen} onClose={() => setMenuOpen(false)} access={access}
         onOpenAdmin={() => { setOrderFocus(null); setRoute({ name: 'admin' }); }} onSignOut={() => { void signOut(); }}
         onOpenExpenses={() => { setOrderFocus(null); setRoute({ name: 'expenses' }); }}
-        onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }} />
+        onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }}
+        onOpenProfile={() => setProfileOpen(true)}
+        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }} />
+      {profileOpen && <ProfileSheet access={access} onClose={() => setProfileOpen(false)} onSaved={refreshAccess} />}
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
       ) : route.name === 'expenses' ? (
@@ -239,9 +250,13 @@ function Root() {
           <ExpensesScreen access={access} />
         </Screen>
       ) : route.name === 'payroll' ? (
-        <Screen title="Ish haqi" tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}
+        <Screen title={worker ? 'Mening ish haqim' : 'Ish haqi'} tab={worker ? 'pay' : 'home'} onTab={goTab} onMenu={() => setMenuOpen(true)}
           onBack={() => (route.staffId && can(access, 'payroll.manage') ? setRoute({ name: 'payroll', staffId: null }) : setRoute({ name: 'home' }))}>
           <PayrollScreen access={access} staffId={route.staffId} setStaffId={(id) => setRoute({ name: 'payroll', staffId: id })} />
+        </Screen>
+      ) : route.name === 'trash' ? (
+        <Screen title="Korzinka" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
+          <TrashScreen access={access} />
         </Screen>
       ) : route.name === 'admin' ? (
         <Screen title="Admin panel" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
@@ -252,16 +267,17 @@ function Root() {
           onBack={route.name === 'soon' ? () => (route.tab === 'orders' && orderFocus ? (focusFrom ? goTab(focusFrom) : setOrderFocus(null)) : setRoute({ name: 'home' })) : undefined}>
           {route.name === 'home'
             ? <HomeScreen access={access} onNewOrder={(d) => setRoute({ name: 'order', draft: d })}
-                onOpenPayroll={() => setRoute({ name: 'payroll', staffId: null })}
+                onOpenPayroll={() => setRoute({ name: 'payroll', staffId: null })} onOpenProfile={() => setProfileOpen(true)}
                 onOpenOrder={openOrder('home')} onShowOrders={showOrders} />
-            : route.tab === 'catalog'
+            : route.tab === 'catalog' && !worker
               ? <CatalogScreen access={access} />
               : route.tab === 'orders'
               ? <OrdersScreen key={preset.n} preset={preset.p} access={access} focusId={orderFocus} setFocusId={(id) => (id === null && focusFrom ? goTab(focusFrom) : setOrderFocus(id))} onEdit={(d) => setRoute({ name: 'order', draft: d })} />
-              : <ReportScreen access={access} onOpenOrder={openOrder('reports')} />}
+              : worker ? null : <ReportScreen access={access} onOpenOrder={openOrder('reports')} />}
         </Screen>
       )}
     </View>
+    </TabsContext.Provider>
   );
 }
 

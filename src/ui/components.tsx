@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
+import { createContext, useContext, useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
   type TextInputProps, type ViewStyle,
@@ -14,7 +14,14 @@ import { useSync } from '../lib/offline';
 // Kontent eng ko'pi 640 px, katta ekranda o'rtada. Eniga aylanish yo'q,
 // aylantirish chiziqlari ko'rinmaydi.
 // ------------------------------------------------------------------
-export type Tab = 'home' | 'orders' | 'catalog' | 'reports';
+export type Tab = 'home' | 'orders' | 'catalog' | 'reports' | 'pay';
+
+const ALL_TABS: Record<Tab, [IconName, string]> = {
+  home: ['home', 'Asosiy'], orders: ['clock', 'Buyurtmalar'], catalog: ['scissors', 'Katalog'],
+  reports: ['receipt', 'Hisobot'], pay: ['wallet', 'Ish haqim'],
+};
+/** Pastki menyuda qaysi bo'limlar ko'rinadi (tikuvchi/ustada Katalog va Hisobot o'rniga "Ish haqim") */
+export const TabsContext = createContext<Tab[]>(['home', 'orders', 'catalog', 'reports']);
 
 /**
  * Kod maydonlari uchun: brauzer va telefon kodni eslab qolmasin, o'zi to'ldirmasin
@@ -38,6 +45,7 @@ export function Screen({
 }) {
   const { t } = useTheme();
   const s = styles(t);
+  const tabs = useContext(TabsContext);
   return (
     <SafeAreaView style={s.shell} edges={['top', 'bottom', 'left', 'right']}>
       <View style={s.topbar}>
@@ -74,7 +82,8 @@ export function Screen({
 
       {dock ?? (tab && onTab && (
         <View style={s.nav} accessibilityRole="tablist">
-          {([['home', 'home', 'Asosiy'], ['orders', 'clock', 'Buyurtmalar'], ['catalog', 'scissors', 'Katalog'], ['reports', 'receipt', 'Hisobot']] as [Tab, IconName, string][]).map(([k, icon, label]) => {
+          {tabs.map((k) => {
+            const [icon, label] = ALL_TABS[k];
             const active = tab === k;
             return (
               <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onTab(k)} style={s.navBtn}>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Avatar } from '../../ui/Avatar';
 import { Pressable, Text, View } from 'react-native';
 import { isAdmin, type Access } from '../../lib/auth';
 import { PERM_GROUPS, ROLE_TONE } from '../../lib/permissions';
@@ -9,7 +10,7 @@ import { Select } from '../../ui/Select';
 import { useTheme } from '../../ui/ThemeContext';
 
 type Staff = {
-  id: string; login: string; full_name: string; role_id: string; is_active: boolean;
+  id: string; login: string; full_name: string; role_id: string; is_active: boolean; avatar_path?: string | null;
   locked_until: string | null; deleted_at: string | null;
 };
 type Role = { id: string; name: string; level: number };
@@ -25,7 +26,7 @@ export function StaffTab({ access }: { access: Access }) {
 
   const load = useCallback(async () => {
     const [s, r] = await Promise.all([
-      supabase.from('staff').select('id, login, full_name, role_id, is_active, locked_until, deleted_at').is('deleted_at', null).order('created_at'),
+      supabase.from('staff').select('id, login, full_name, role_id, is_active, locked_until, deleted_at, avatar_path').is('deleted_at', null).order('created_at'),
       supabase.from('roles').select('id, name, level').order('level', { ascending: false }),
     ]);
     if (s.error) setMsg({ tone: 'error', text: s.error.message });
@@ -108,9 +109,11 @@ function StaffRow({ s, me, open, roleName, roles, canManage, admin, onToggle, on
     <Card padded={false} highlighted={open}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={onToggle}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, opacity: s.is_active ? 1 : 0.75 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: avBg, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: avFg, fontSize: 14, fontWeight: '800' }}>{initials(s.full_name)}</Text>
-        </View>
+        {s.avatar_path ? <Avatar name={s.full_name} path={s.avatar_path} size={40} /> : (
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: avBg, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: avFg, fontSize: 14, fontWeight: '800' }}>{initials(s.full_name)}</Text>
+          </View>
+        )}
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: t.text }} numberOfLines={1}>{s.full_name}{me ? ' — siz' : ''}</Text>
           <Text style={{ fontSize: 11, color: t.muted }} numberOfLines={1}>{s.login} · {status}</Text>

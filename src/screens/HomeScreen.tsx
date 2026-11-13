@@ -9,6 +9,7 @@ import { fmtN } from '../lib/format';
 import { remaining, stage, useOrders } from '../lib/orders';
 import { CompactOrder, CurtainArt, EmptyCard, SectionTitle } from './home/CompactOrder';
 import { Intro } from '../ui/components';
+import { Avatar } from '../ui/Avatar';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 
@@ -34,8 +35,8 @@ export function MenuItem({ icon, title, sub, onPress, danger }: { icon: IconName
   );
 }
 
-export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders, onOpenPayroll }: {
-  access: Access; onNewOrder: (resume: Draft | null) => void; onOpenPayroll: () => void;
+export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders, onOpenPayroll, onOpenProfile }: {
+  access: Access; onNewOrder: (resume: Draft | null) => void; onOpenPayroll: () => void; onOpenProfile: () => void;
   onOpenOrder: (id: string) => void; onShowOrders: (preset: OrdersPreset) => void;
 }) {
   const { t } = useTheme();
@@ -79,6 +80,15 @@ export function HomeScreen({ access, onNewOrder, onOpenOrder, onShowOrders, onOp
 
   return (
     <>
+      {/* Kim kirgan — bosilsa, profil ochiladi */}
+      <Pressable accessibilityRole="button" accessibilityLabel="Profilni ochish" onPress={onOpenProfile}
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.7 : 1, alignSelf: 'flex-start', maxWidth: '100%' })}>
+        <Avatar name={access.full_name} path={access.avatar} size={44} />
+        <View style={{ flexShrink: 1, minWidth: 0 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: t.text }} numberOfLines={1}>{access.full_name}</Text>
+          <Text style={{ fontSize: 12, color: t.muted }} numberOfLines={1}>{access.role_name}</Text>
+        </View>
+      </Pressable>
       <Intro overline={`${d.getDate()} ${MONTHS[d.getMonth()]} · ${DAYS[d.getDay()]}`.toUpperCase()} title={full ? 'Bugungi ishlar' : 'Mening ishlarim'} />
 
       {full ? (

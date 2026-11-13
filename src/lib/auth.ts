@@ -9,6 +9,8 @@ export type Access = {
   staff_id: string;
   login: string;
   full_name: string;
+  /** Profil rasmi (Storage: avatars/...) */
+  avatar?: string | null;
   role: 'admin' | 'direktor' | 'tikuvchi' | 'usta' | string;
   role_name: string;
   level: number;

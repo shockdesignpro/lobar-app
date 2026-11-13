@@ -279,9 +279,9 @@ function randomId() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); });
 }
 
-export type StaffLite = { id: string; full_name: string; role_id: string };
+export type StaffLite = { id: string; full_name: string; role_id: string; avatar_path?: string | null };
 export async function loadWorkers(): Promise<StaffLite[]> {
-  const { data, error } = await supabase.from('staff').select('id, full_name, role_id').in('role_id', ['tikuvchi', 'usta']).eq('is_active', true).is('deleted_at', null).order('full_name');
+  const { data, error } = await supabase.from('staff').select('id, full_name, role_id, avatar_path').in('role_id', ['tikuvchi', 'usta']).eq('is_active', true).is('deleted_at', null).order('full_name');
   if (error) return (await cacheGet<StaffLite[]>('workers')) ?? [];
   void cacheSet('workers', data);
   return (data as StaffLite[] | null) ?? [];

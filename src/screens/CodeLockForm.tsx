@@ -1,8 +1,8 @@
-// Kod va qulflash: o'z kodini almashtirish (eski kod + yangi kod ikki marta) va avtomatik qulflanish vaqti
+// Kod va qulflash (Profil sahifasi ichida): o'z kodini almashtirish (eski kod + yangi kod ikki marta) va avtomatik qulflanish vaqti
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { autoLockMinutes, changeMyCode, getLockPref, setLockPref, type Access } from '../lib/auth';
-import { Button, Field, NO_SAVE, Note, Sheet } from '../ui/components';
+import { Button, Field, NO_SAVE, Note } from '../ui/components';
 import { Select } from '../ui/Select';
 import { useSnack } from '../ui/SnackContext';
 import { useTheme } from '../ui/ThemeContext';
@@ -12,7 +12,7 @@ const LOCK_OPTIONS = [
   { key: '0', label: 'Qulflanmasin' },
 ];
 
-export function CodeLockSheet({ access, onClose }: { access: Access; onClose: () => void }) {
+export function CodeLockForm({ access }: { access: Access }) {
   const { t } = useTheme();
   const snack = useSnack();
   const minLen = access.level >= 100 ? 8 : access.level >= 50 ? 6 : 4;
@@ -37,7 +37,6 @@ export function CodeLockSheet({ access, onClose }: { access: Access; onClose: ()
     if (!r.ok) { setErr(r.error); setOld(''); return; }
     setOld(''); setCode(''); setCode2('');
     snack('Kod almashtirildi');
-    onClose();
   };
   const pickLock = async (v: string) => {
     setLock(v);
@@ -46,7 +45,7 @@ export function CodeLockSheet({ access, onClose }: { access: Access; onClose: ()
   };
 
   return (
-    <Sheet visible onClose={onClose} title="Kod va qulflash">
+    <>
       <Text style={{ fontSize: 15, fontWeight: '800', color: t.text }}>Kodni almashtirish</Text>
       <Field label="Eski kod" value={oldCode} onChangeText={(v) => setOld(clean(v))} secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} {...NO_SAVE} />
       <Field label={`Yangi kod (kamida ${minLen} ta harf yoki raqam)`} value={code} onChangeText={(v) => setCode(clean(v))} secureTextEntry autoCapitalize="none" autoCorrect={false} maxLength={32} {...NO_SAVE} />
@@ -63,6 +62,6 @@ export function CodeLockSheet({ access, onClose }: { access: Access; onClose: ()
           ? 'Ilova o‘zi qulflanmaydi. Telefon boshqa birovning qo‘liga tushsa, ichidagi ma’lumotlar ochiq bo‘ladi.'
           : 'Tanlangan vaqt davomida hech narsa bosilmasa, ilova qulflanadi va qayta kod so‘raydi. Bu sozlama shu qurilmaga tegishli.'}
       </Text>
-    </Sheet>
+    </>
   );
 }

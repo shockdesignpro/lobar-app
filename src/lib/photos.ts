@@ -27,3 +27,24 @@ export async function pickPhotos(source: 'library' | 'camera'): Promise<string[]
   }
   return out;
 }
+
+/** Profil rasmi: kvadrat qilib qirqiladi (telefon o'zi qirqish oynasini ko'rsatadi), 400×400 */
+export async function pickAvatar(source: 'library' | 'camera'): Promise<string | null> {
+  let res: ImagePicker.ImagePickerResult;
+  const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1 };
+  if (source === 'camera') {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) throw new Error('Kameraga ruxsat berilmagan. Telefon sozlamalaridan ruxsat bering.');
+    res = await ImagePicker.launchCameraAsync({ ...opts, cameraType: ImagePicker.CameraType.front });
+  } else {
+    res = await ImagePicker.launchImageLibraryAsync(opts);
+  }
+  if (res.canceled || !res.assets[0]) return null;
+  const a = res.assets[0];
+  const side = Math.min(a.width, a.height);
+  const r = await manipulateAsync(a.uri, [
+    { crop: { originX: Math.floor((a.width - side) / 2), originY: Math.floor((a.height - side) / 2), width: side, height: side } },
+    { resize: { width: 400, height: 400 } },
+  ], { compress: 0.8, format: SaveFormat.JPEG, base64: true });
+  return r.base64 ? `data:image/jpeg;base64,${r.base64}` : null;
+}

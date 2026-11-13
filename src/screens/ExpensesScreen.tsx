@@ -7,7 +7,8 @@ import { calcNumber, fmtN, fmtSom, groupTyping } from '../lib/format';
 import { isNetworkError } from '../lib/offline';
 import { useOrders } from '../lib/orders';
 import { monthKey, monthOptions } from '../lib/payroll';
-import { Button, Card, Field, Intro, Loading, Note, Sheet } from '../ui/components';
+import { Button, Card, Field, Intro, Loading, Note, Segmented, Sheet } from '../ui/components';
+import { ProfitView } from './ProfitView';
 import { confirmAsk } from '../ui/confirm';
 import { DateField } from '../ui/DateField';
 import { Icon } from '../ui/Icon';
@@ -31,6 +32,7 @@ export function ExpensesScreen({ access }: { access: Access }) {
   const [list, setList] = useState<Expense[] | null>(null);
   const [err, setErr] = useState('');
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<'expenses' | 'profit'>('expenses');
   const { items: orders } = useOrders(true);
 
   const load = useCallback(() => {
@@ -63,7 +65,10 @@ export function ExpensesScreen({ access }: { access: Access }) {
 
   return (
     <>
-      <Intro overline="MOLIYA" title="Xarajatlar" sub="Xaridlar, ijara va boshqa chiqimlar. Sof foyda Hisobot sahifasida." />
+      <Intro overline="MOLIYA" title={view === 'profit' ? 'Sof foyda' : 'Xarajatlar'} />
+      <Segmented label="Bo‘lim" value={view} onChange={setView}
+        items={[{ key: 'expenses', label: 'Xarajatlar' }, { key: 'profit', label: 'Sof foyda' }]} />
+      {view === 'profit' ? <ProfitView /> : (<>
       <Select label="Oy" value={month} options={monthOptions()} onChange={setMonth} />
       {err ? <Note tone="error">{err}</Note> : null}
       <Button label="Xarajat qo‘shish" icon="plus" onPress={() => setAdding(true)} />
@@ -106,6 +111,7 @@ export function ExpensesScreen({ access }: { access: Access }) {
         <ExpenseSheet cats={cats} orders={(orders ?? []).map((o) => ({ key: o.id, label: orderName(o.id) }))}
           onCats={setCats} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); snack('Xarajat qo‘shildi'); load(); }} />
       )}
+      </>)}
     </>
   );
 }

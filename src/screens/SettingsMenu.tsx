@@ -13,10 +13,11 @@ import { confirmAsk } from '../ui/confirm';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 import { RemindersSheet } from './RemindersSheet';
-import { CodeLockSheet } from './CodeLockSheet';
+import { Avatar } from '../ui/Avatar';
 
-export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses }: {
+export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash }: {
   visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void; onOpenExpenses: () => void;
+  onOpenProfile: () => void; onOpenTrash: () => void;
 }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -24,7 +25,6 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
   const panelW = Math.min(360, Math.round(width * 0.86));
   const x = useRef(new Animated.Value(panelW)).current;
   const [shown, setShown] = useState(visible);
-  const [codeOpen, setCodeOpen] = useState(false);
   const [remOpen, setRemOpen] = useState(false);
   const [macrosOpen, setMacrosOpen] = useState(false);
   const snack = useSnack();
@@ -63,33 +63,36 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
             </View>
 
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, gap: 10 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {/* Kim kirgan */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 15, backgroundColor: t.tealLight }}>
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.teal, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '800' }}>{(access.full_name || '?').trim().slice(0, 1).toUpperCase()}</Text>
-                </View>
+              {/* Kim kirgan — bosilsa, profil (ism, rasm, kod) ochiladi */}
+              <Pressable accessibilityRole="button" accessibilityLabel="Profilni ochish" onPress={() => go(() => setTimeout(onOpenProfile, 200))}
+                style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 15, backgroundColor: t.tealLight, opacity: pressed ? 0.85 : 1 })}>
+                <Avatar name={access.full_name} path={access.avatar} size={44} />
                 <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                   <Text style={{ fontSize: 15, fontWeight: '800', color: t.text }} numberOfLines={1}>{access.full_name}</Text>
-                  <View style={{ flexDirection: 'row' }}><Badge label={access.role_name} tone="teal" /></View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Badge label={access.role_name} tone="teal" />
+                    <Text style={{ fontSize: 12, color: t.teal, fontWeight: '600' }}>Profil</Text>
+                  </View>
                 </View>
-              </View>
+                <Icon name="chevron" color={t.teal} size={18} />
+              </Pressable>
 
               {showAdmin && (
                 <Row icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={() => go(onOpenAdmin)} />
               )}
               {can(access, 'expenses.manage') && (
-                <Row icon="receipt" title="Xarajatlar" sub="Xarid, ijara, transport va boshqalar" onPress={() => go(onOpenExpenses)} />
+                <Row icon="receipt" title="Xarajatlar" sub="Xarajatlar va sof foyda" onPress={() => go(onOpenExpenses)} />
               )}
               {can(access, 'payroll.manage') ? (
                 <Row icon="wallet" title="Ish haqi" sub="Tikuvchi va ustalar hisobi" onPress={() => go(onOpenPayroll)} />
-              ) : access.role === 'tikuvchi' || access.role === 'usta' ? (
-                <Row icon="wallet" title="Mening ish haqim" sub="Bajarilgan ishlar va qoldiq" onPress={() => go(onOpenPayroll)} />
               ) : null}
               {can(access, 'catalog.edit') && (
                 <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
               )}
               <Row icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => go(() => setTimeout(() => setRemOpen(true), 260))} />
-              <Row icon="key" title="Kod va qulflash" sub="Kodni almashtirish, avtomatik qulflash vaqti" onPress={() => go(() => setTimeout(() => setCodeOpen(true), 260))} />
+              {(isAdmin(access) || can(access, 'archive.send') || can(access, 'catalog.edit')) && (
+                <Row icon="trash" title="Korzinka" sub="O‘chirilgan buyurtma, mahsulot va xizmatlar" onPress={() => go(onOpenTrash)} />
+              )}
 
               <View style={{ height: 6 }} />
               <Row icon="logout" title="Chiqish" danger onPress={async () => {
@@ -102,7 +105,6 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
         </View>
       </Modal>
       <RemindersSheet visible={remOpen} onClose={() => setRemOpen(false)} access={access} />
-      {codeOpen && <CodeLockSheet access={access} onClose={() => setCodeOpen(false)} />}
       {macrosOpen && <MacrosEditor onClose={() => setMacrosOpen(false)} onSaved={(m) => { setMacrosOpen(false); snack(m); }} />}
     </>
   );

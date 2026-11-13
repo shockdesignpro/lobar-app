@@ -110,7 +110,7 @@ export function onSyncFailure(f: (msg: string) => void) { failListeners.add(f); 
 export function onSynced(f: () => void) { doneListeners.add(f); return () => { doneListeners.delete(f); }; }
 export function onOutboxChange(f: () => void) { boxListeners.add(f); return () => { boxListeners.delete(f); }; }
 
-function dataToBytes(dataUrl: string): Uint8Array {
+export function dataToBytes(dataUrl: string): Uint8Array {
   const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
   const bin = globalThis.atob(b64);
   const out = new Uint8Array(bin.length);

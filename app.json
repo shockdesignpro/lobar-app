@@ -35,6 +35,19 @@
     "scheme": "lobarparda",
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#faefe6",
+          "dark": {
+            "image": "./assets/splash-dark.png",
+            "backgroundColor": "#161311"
+          }
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#0d7a5f"

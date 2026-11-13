@@ -54,3 +54,35 @@ export function pickPhotos(source: 'library' | 'camera'): Promise<string[]> {
     input.click();
   });
 }
+
+async function squareJpeg(file: Blob): Promise<string> {
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const side = Math.min(bmp.width, bmp.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = 400; canvas.height = 400;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 400, 400);
+  ctx.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 400, 400);
+  bmp.close?.();
+  return canvas.toDataURL('image/jpeg', 0.8);
+}
+
+/** Profil rasmi: o'rtasidan kvadrat qilib qirqiladi, 400×400 */
+export function pickAvatar(source: 'library' | 'camera'): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    if (source === 'camera') input.setAttribute('capture', 'user');
+    input.style.display = 'none';
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      input.remove();
+      if (!f) { resolve(null); return; }
+      try { resolve(await squareJpeg(f)); } catch { reject(new Error('Rasm ochilmadi')); }
+    };
+    input.addEventListener('cancel', () => { input.remove(); resolve(null); });
+    document.body.appendChild(input);
+    input.click();
+  });
+}

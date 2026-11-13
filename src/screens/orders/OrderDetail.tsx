@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Avatar } from '../../ui/Avatar';
 import { loadOrderProfit, useMoneyLive, type OrderProfit } from '../../lib/expenses';
 import { Pressable, Text, View } from 'react-native';
 import { can, type Access } from '../../lib/auth';
@@ -233,7 +234,8 @@ function AssignChips({ title, list, o, task, onToggle }: { title: string; list: 
             const on = o.assignees.some((a) => a.staff_id === w.id && a.task === task);
             return (
               <Pressable key={w.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => onToggle(w, !on)}
-                style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1, borderColor: on ? t.teal : t.border, backgroundColor: on ? t.tealLight : t.card, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                style={{ minHeight: 34, paddingLeft: 5, paddingRight: 12, borderRadius: 17, borderWidth: 1, borderColor: on ? t.teal : t.border, backgroundColor: on ? t.tealLight : t.card, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Avatar name={w.full_name} path={w.avatar_path} size={24} />
                 {on && <Icon name="check" color={t.teal} size={12} strokeWidth={3} />}
                 <Text style={{ fontSize: 12, fontWeight: on ? '700' : '500', color: on ? t.teal : t.text }}>{w.full_name}</Text>
               </Pressable>
