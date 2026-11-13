@@ -97,3 +97,8 @@ language sql security definer set search_path = public as $$
 $$;
 revoke all on function public.push_unassigned_check_cleanup() from public, anon, authenticated;
 select cron.schedule('lobar-notifications-cleanup', '30 4 * * *', 'select public.push_unassigned_check_cleanup()');
+
+-- Yangi xabar kelganda qo'ng'iroqcha ustidagi son darhol yangilanadi
+do $$ begin
+  alter publication supabase_realtime add table public.notifications;
+exception when duplicate_object then null; end $$;

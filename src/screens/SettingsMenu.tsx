@@ -11,13 +11,11 @@ import { MacrosSheet } from './MacrosSheet';
 import { confirmAsk } from '../ui/confirm';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
-import { RemindersSheet } from './RemindersSheet';
 import { Avatar } from '../ui/Avatar';
-import { unreadCount } from '../lib/inbox';
 
-export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash, onOpenInbox }: {
+export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash }: {
   visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void; onOpenExpenses: () => void;
-  onOpenProfile: () => void; onOpenTrash: () => void; onOpenInbox: () => void;
+  onOpenProfile: () => void; onOpenTrash: () => void;
 }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -25,11 +23,8 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
   const panelW = Math.min(360, Math.round(width * 0.86));
   const x = useRef(new Animated.Value(panelW)).current;
   const [shown, setShown] = useState(visible);
-  const [remOpen, setRemOpen] = useState(false);
   const [macrosOpen, setMacrosOpen] = useState(false);
   const snack = useSnack();
-  const [unread, setUnread] = useState(0);
-  useEffect(() => { if (visible) unreadCount().then(setUnread); }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -88,8 +83,6 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
               {can(access, 'catalog.edit') && (
                 <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
               )}
-              <Row icon="inbox" title="Bildirishnomalar" sub={unread ? `${unread} ta yangi xabar` : 'Kelgan xabarlar'} badge={unread} onPress={() => go(onOpenInbox)} />
-              <Row icon="bell" title="Eslatmalar" sub="Topshirish kuni va bir kun oldin" onPress={() => go(() => setTimeout(() => setRemOpen(true), 260))} />
               {(isAdmin(access) || can(access, 'archive.send') || can(access, 'catalog.edit')) && (
                 <Row icon="trash" title="Korzinka" sub="O‘chirilgan buyurtma, mahsulot va xizmatlar" onPress={() => go(onOpenTrash)} />
               )}
@@ -104,7 +97,6 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
           </Animated.View>
         </View>
       </Modal>
-      <RemindersSheet visible={remOpen} onClose={() => setRemOpen(false)} access={access} />
       {macrosOpen && <MacrosEditor onClose={() => setMacrosOpen(false)} onSaved={(m) => { setMacrosOpen(false); snack(m); }} />}
     </>
   );

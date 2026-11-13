@@ -26,7 +26,8 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileSheet } from './src/screens/ProfileSheet';
 import { TrashScreen } from './src/screens/TrashScreen';
 import { InboxScreen } from './src/screens/InboxScreen';
-import { Loading, Screen, TabsContext, type Tab } from './src/ui/components';
+import { BellContext, Loading, Screen, TabsContext, type Tab } from './src/ui/components';
+import { useUnread } from './src/lib/inbox';
 import { SnackProvider, useSnack } from './src/ui/SnackContext';
 import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
 
@@ -92,6 +93,8 @@ function Root() {
     });
     return () => sub.subscription.unsubscribe();
   }, [refreshAccess]);
+
+  const unread = useUnread(access?.staff_id ?? null);
 
   // Bildirishnomalar: telefon manzilini yozamiz (har kirishda — manzil yangilangan bo'lishi mumkin)
   const staffId = access?.staff_id;
@@ -230,6 +233,7 @@ function Root() {
 
   return (
     <TabsContext.Provider value={tabs}>
+    <BellContext.Provider value={{ count: unread, onPress: () => { setMenuOpen(false); setOrderFocus(null); setRoute({ name: 'inbox' }); } }}>
     <View
       style={{ flex: 1 }}
       onStartShouldSetResponderCapture={() => { markActive(); return false; }}
@@ -242,8 +246,7 @@ function Root() {
         onOpenExpenses={() => { setOrderFocus(null); setRoute({ name: 'expenses' }); }}
         onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }}
-        onOpenInbox={() => { setOrderFocus(null); setRoute({ name: 'inbox' }); }} />
+        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }} />
       {profileOpen && <ProfileSheet access={access} onClose={() => setProfileOpen(false)} onSaved={refreshAccess} />}
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
@@ -258,7 +261,7 @@ function Root() {
         </Screen>
       ) : route.name === 'inbox' ? (
         <Screen title="Bildirishnomalar" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
-          <InboxScreen onOpen={(x) => setPushTarget({ orderId: x.orderId, screen: x.screen === 'payroll' || x.screen === 'orders' ? x.screen : undefined })} />
+          <InboxScreen access={access} onOpen={(x) => setPushTarget({ orderId: x.orderId, screen: x.screen === 'payroll' || x.screen === 'orders' ? x.screen : undefined })} />
         </Screen>
       ) : route.name === 'trash' ? (
         <Screen title="Korzinka" onBack={() => setRoute({ name: 'home' })} tab="home" onTab={goTab} onMenu={() => setMenuOpen(true)}>
@@ -283,6 +286,7 @@ function Root() {
         </Screen>
       )}
     </View>
+    </BellContext.Provider>
     </TabsContext.Provider>
   );
 }

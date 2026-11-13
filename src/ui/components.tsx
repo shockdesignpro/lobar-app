@@ -22,6 +22,8 @@ const ALL_TABS: Record<Tab, [IconName, string]> = {
 };
 /** Pastki menyuda qaysi bo'limlar ko'rinadi (tikuvchi/ustada Katalog va Hisobot o'rniga "Ish haqim") */
 export const TabsContext = createContext<Tab[]>(['home', 'orders', 'catalog', 'reports']);
+/** Yuqoridagi qo'ng'iroqcha (burger chap tomonida): o'qilmagan xabarlar soni va bosilganda */
+export const BellContext = createContext<{ count: number; onPress: () => void } | null>(null);
 
 /**
  * Kod maydonlari uchun: brauzer va telefon kodni eslab qolmasin, o'zi to'ldirmasin
@@ -46,6 +48,7 @@ export function Screen({
   const { t } = useTheme();
   const s = styles(t);
   const tabs = useContext(TabsContext);
+  const bell = useContext(BellContext);
   return (
     <SafeAreaView style={s.shell} edges={['top', 'bottom', 'left', 'right']}>
       <View style={s.topbar}>
@@ -59,6 +62,17 @@ export function Screen({
           <Text style={s.brand}>{caption}</Text>
         </View>
         {right}
+        {onMenu && bell && (
+          <Pressable accessibilityRole="button" accessibilityLabel={bell.count ? `Bildirishnomalar, ${bell.count} ta yangi` : 'Bildirishnomalar'} onPress={bell.onPress} style={s.circleBtn}>
+            <Icon name="bell" color={t.teal} size={20} strokeWidth={2} />
+            {bell.count > 0 && (
+              <View style={{ position: 'absolute', top: -5, right: -6, minWidth: 20, height: 18, borderRadius: 9, paddingHorizontal: 5,
+                backgroundColor: '#e5484d', borderWidth: 2, borderColor: t.bg, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '800' }}>{bell.count > 99 ? '99+' : bell.count}</Text>
+              </View>
+            )}
+          </Pressable>
+        )}
         {onMenu && (
           <Pressable accessibilityRole="button" accessibilityLabel="Sozlamalar menyusi" onPress={onMenu} style={s.circleBtn}>
             <Icon name="menu" color={t.teal} size={20} strokeWidth={2} />

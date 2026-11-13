@@ -1,7 +1,9 @@
 // Bildirishnomalar: menga kelgan barcha xabarlar (ilovaga kirmagan paytdagilari ham)
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import type { Access } from '../lib/auth';
 import { loadInbox, markAllRead, type InboxItem } from '../lib/inbox';
+import { ReminderSettings } from './ReminderSettings';
 import { isNetworkError } from '../lib/offline';
 import { Card, Intro, Loading, Note } from '../ui/components';
 import { Icon } from '../ui/Icon';
@@ -14,7 +16,7 @@ const when = (iso: string) => {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)} · ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-export function InboxScreen({ onOpen }: { onOpen: (t: { orderId?: string; screen?: string }) => void }) {
+export function InboxScreen({ access, onOpen }: { access: Access; onOpen: (t: { orderId?: string; screen?: string }) => void }) {
   const { t } = useTheme();
   const [list, setList] = useState<InboxItem[] | null>(null);
   const [err, setErr] = useState('');
@@ -27,6 +29,7 @@ export function InboxScreen({ onOpen }: { onOpen: (t: { orderId?: string; screen
 
   return (
     <>
+      <ReminderSettings access={access} />
       <Intro overline="XABARLAR" title="Bildirishnomalar" />
       {err ? <Note tone="error">{err}</Note> : null}
       {!list ? <Loading /> : list.length ? (
