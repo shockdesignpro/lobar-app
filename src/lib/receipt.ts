@@ -2,6 +2,8 @@
 // Chek: eski ilovadagi (chek.js + room-costs.js) bilan bir xil HTML va CSS.
 // Chek ranglari tungi rejimda ham o'zgarmaydi.
 // ============================================================
+import qrcode from 'qrcode-generator';
+import { trackUrl } from './track';
 import { costGroups, mqText, type Draft, type Opening, type Row, type Section } from './order/model';
 
 /** Eski ilova CSS'idan aynan olingan (faqat .lobar-rcpt ichida ishlaydi) */
@@ -38,7 +40,20 @@ function rowsHtml(rows: Row[], curtains: Opening[]) {
   return rowsByCurtain(rows, curtains).map((g) => `${g.label ? `<div class="room-subhead">${g.label}</div>` : ''}${g.rows.map(line).join('')}`).join('');
 }
 
-export type ReceiptMeta = { number: string; date: number };
+export type ReceiptMeta = { number: string; date: number; /** buyurtma id — chekda mijoz uchun kuzatish QR-kodi */ orderId?: string | null };
+
+/** Kuzatish havolasi uchun QR-kod (GIF rasm, chek ichiga) */
+function trackQr(orderId: string) {
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(trackUrl(orderId));
+    qr.make();
+    return '<div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding:10px;border:1px solid var(--border);border-radius:8px">'
+      + `<img src="${qr.createDataURL(3, 2)}" width="96" height="96" style="width:96px;height:96px;flex-shrink:0;image-rendering:pixelated" alt="QR" />`
+      + '<div style="font-size:12px;line-height:17px;color:var(--text)"><strong style="color:var(--teal-dark)">Buyurtmangizni kuzating</strong><br>'
+      + 'Telefon kamerasi bilan skanerlang — pardangiz qaysi bosqichda ekanini ko‘rasiz.</div></div>';
+  } catch { return ''; }
+}
 
 /** Chek ichki HTML'i (buildReceiptHtml) */
 export function receiptHtml(d: Draft, meta: ReceiptMeta): string {
@@ -72,6 +87,7 @@ export function receiptHtml(d: Draft, meta: ReceiptMeta): string {
     + `<div class="rcpt-tot-line"><span>🔧 O'rnatish</span><span>${fmt(u)}</span></div>`
     + `<div class="rcpt-xizmat"><span>Xizmat haqi jami</span><span>${fmt(t + u)}</span></div>`
     + `<div class="rcpt-grand"><span>💰 JAMI</span><span>${fmt(m + t + u)}</span></div></div>`
+    + (meta.orderId ? trackQr(meta.orderId) : '')
     + '<div class="rcpt-footer">"Lobar" pardalar uyi tomonidan hisoblab berildi</div>';
 }
 

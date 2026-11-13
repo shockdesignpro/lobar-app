@@ -4,7 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'back' | 'moon' | 'sun' | 'lock' | 'shield' | 'plus' | 'home' | 'clock' | 'scissors'
   | 'receipt' | 'chevron' | 'users' | 'logout' | 'key' | 'search' | 'edit' | 'trash' | 'download' | 'upload'
-  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud' | 'menu' | 'zap' | 'wallet' | 'undo' | 'pen' | 'flip' | 'magnet' | 'equal';
+  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud' | 'menu' | 'zap' | 'wallet' | 'undo' | 'pen' | 'flip' | 'magnet' | 'equal' | 'link';
 
 export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: IconName; size?: number; color: string; strokeWidth?: number }) {
   const p = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -43,6 +43,7 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: Icon
       {name === 'flip' && (<><Path d="M21 2v6h-6" {...p} /><Path d="M3 12a9 9 0 0 1 15-6.7L21 8" {...p} /><Path d="M3 22v-6h6" {...p} /><Path d="M21 12a9 9 0 0 1-15 6.7L3 16" {...p} /></>)}
       {name === 'magnet' && (<><Path d="M6 3v8a6 6 0 0 0 12 0V3" {...p} /><Path d="M6 3h4v8a2 2 0 0 0 4 0V3h4" {...p} /><Path d="M6 7h4M14 7h4" {...p} /></>)}
       {name === 'equal' && (<><Path d="M5 9h14" {...p} /><Path d="M5 15h14" {...p} /></>)}
+      {name === 'link' && (<><Path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7" {...p} /><Path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7" {...p} /></>)}
       {name === 'camera' && (<><Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" {...p} /><Circle cx="12" cy="13" r="4" {...p} /></>)}
       {name === 'bell' && (<><Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" {...p} /><Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" {...p} /></>)}
       {name === 'calendar' && (<><Rect x="3" y="4" width="18" height="18" rx="2" {...p} /><Path d="M16 2v4M8 2v4M3 10h18" {...p} /></>)}

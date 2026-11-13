@@ -25,6 +25,8 @@ import { ExpensesScreen } from './src/screens/ExpensesScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileSheet } from './src/screens/ProfileSheet';
 import { TrashScreen } from './src/screens/TrashScreen';
+import { TrackPage } from './src/screens/TrackPage';
+import { trackTokenFromUrl } from './src/lib/track';
 import { InboxScreen } from './src/screens/InboxScreen';
 import { BellContext, Loading, Screen, TabsContext, type Tab } from './src/ui/components';
 import { useUnread } from './src/lib/inbox';
@@ -32,6 +34,9 @@ import { SnackProvider, useSnack } from './src/ui/SnackContext';
 import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
 
 export default function App() {
+  // Mijoz kuzatish havolasi (?t=...) — kirishsiz alohida sahifa
+  const [track] = useState(() => (Platform.OS === 'web' ? trackTokenFromUrl() : null));
+  if (track) return <SafeAreaProvider><TrackPage token={track} /></SafeAreaProvider>;
   return (
     <SafeAreaProvider>
       <ThemeProvider>

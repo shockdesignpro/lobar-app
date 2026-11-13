@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import type { OrdersPreset } from '../HomeScreen';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Share, Text, View } from 'react-native';
 import { can, type Access } from '../../lib/auth';
 import type { Draft } from '../../lib/order/model';
 import {
   archiveOrder, createdFrom, loadOrderDraft, orderNumber, payStatus, readySoon, restoreOrder, useOrders, type OrderListItem,
 } from '../../lib/orders';
 import { receiptFileName, receiptHtml } from '../../lib/receipt';
+import { trackUrl } from '../../lib/track';
 import { downloadReceipt, isIOS, makeReceiptImage, shareReceipt, type ReceiptImage } from '../../lib/receiptImage';
 import { Card, Intro, Loading, Note } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
@@ -64,7 +65,7 @@ export function OrdersScreen({ access, onEdit, focusId, setFocusId, preset }: {
         snack('Rasm tayyorlanmoqda...');
         const d = await loadOrderDraft(o, true);
         const date = new Date(o.created_at).getTime();
-        img = await makeReceiptImage(receiptHtml(d, { number: orderNumber(o), date }), receiptFileName(o.client_name, date));
+        img = await makeReceiptImage(receiptHtml(d, { number: orderNumber(o), date, orderId: o.id }), receiptFileName(o.client_name, date));
         receipts.current.set(o.id, img);
         // iPhone'da ulashish oynasi faqat bevosita bosishda ochiladi: rasm tayyor, yana bir bor bosiladi
         if (isIOS()) { snack('Chek tayyor — ulashish uchun yana bir bor bosing'); return; }
@@ -80,10 +81,27 @@ export function OrdersScreen({ access, onEdit, focusId, setFocusId, preset }: {
     snack(`“${o.client_name}” buyurtmasi o‘chirildi`, { label: 'BEKOR QILISH', run: async () => { await restoreOrder(o.id); snack('Tiklandi'); } });
   };
 
+  // Mijozga kuzatish havolasi: Telegram / SMS / WhatsApp (telefonning ulashish oynasi), bo'lmasa nusxa
+  const shareTrack = async (o: OrderListItem) => {
+    const url = trackUrl(o.id);
+    const message = `Assalomu alaykum${o.client_name ? `, ${o.client_name}` : ''}! Pardangiz holatini shu havola orqali kuzatishingiz mumkin:\n${url}\n\n“Lobar” pardalar uyi`;
+    try {
+      if (Platform.OS === 'web') {
+        const nav = navigator as Navigator & { share?: (d: { text?: string; url?: string }) => Promise<void> };
+        if (nav.share) { await nav.share({ text: message }); return; }
+        await navigator.clipboard.writeText(message);
+        snack('Havola nusxalandi — Telegram yoki SMS ga qo‘ying');
+        return;
+      }
+      await Share.share({ message });
+    } catch { /* bekor qilindi */ }
+  };
+
   const actions = (o: OrderListItem) => (
     <>
       {can(access, 'orders.edit') && <MiniAction icon="edit" label="Buyurtmani tahrirlash" onPress={() => edit(o)} />}
       {money && <MiniAction icon="share" label="Chekni ulashish" onPress={() => share(o)} />}
+      {money && <MiniAction icon="link" label="Mijozga kuzatish havolasini yuborish" onPress={() => shareTrack(o)} />}
       {can(access, 'archive.send') && <MiniAction icon="trash" label="Buyurtmani o‘chirish" danger onPress={() => remove(o)} />}
     </>
   );

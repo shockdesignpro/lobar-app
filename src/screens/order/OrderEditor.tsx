@@ -89,7 +89,7 @@ export function OrderEditor({ initial, onExit }: { access: Access; initial: Draf
     try {
       // Tahrirlangan buyurtma chekida asl yaratilgan sana qoladi (eski ilovadagidek)
       const now = existing ? new Date(existing.created_at).getTime() : Date.now();
-      const img = await makeReceiptImage(receiptHtml(draft, { number: orderNumber(result), date: now }), receiptFileName(draft.client.name, now));
+      const img = await makeReceiptImage(receiptHtml(draft, { number: orderNumber(result), date: now, orderId: result.id }), receiptFileName(draft.client.name, now));
       setReceipt(img);
       if (autoDownloadAfterSave()) {
         const ok = await downloadReceipt(img);
