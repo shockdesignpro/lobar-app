@@ -4,7 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'back' | 'moon' | 'sun' | 'lock' | 'shield' | 'plus' | 'home' | 'clock' | 'scissors'
   | 'receipt' | 'chevron' | 'users' | 'logout' | 'key' | 'search' | 'edit' | 'trash' | 'download' | 'upload'
-  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud' | 'menu' | 'zap' | 'wallet' | 'undo' | 'pen' | 'flip';
+  | 'user' | 'layout' | 'door' | 'window' | 'close' | 'box' | 'wrench' | 'file' | 'arrowRight' | 'check' | 'share' | 'inbox' | 'image' | 'camera' | 'bell' | 'calendar' | 'cloud' | 'menu' | 'zap' | 'wallet' | 'undo' | 'pen' | 'flip' | 'magnet' | 'equal';
 
 export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: IconName; size?: number; color: string; strokeWidth?: number }) {
   const p = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -41,6 +41,8 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.8 }: { name: Icon
       {name === 'share' && (<><Circle cx="18" cy="5" r="3" {...p} /><Circle cx="6" cy="12" r="3" {...p} /><Circle cx="18" cy="19" r="3" {...p} /><Path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" {...p} /></>)}
       {name === 'image' && (<><Rect x="3" y="3" width="18" height="18" rx="2" {...p} /><Circle cx="8.5" cy="8.5" r="1.5" {...p} /><Path d="M21 15l-5-5L5 21" {...p} /></>)}
       {name === 'flip' && (<><Path d="M21 2v6h-6" {...p} /><Path d="M3 12a9 9 0 0 1 15-6.7L21 8" {...p} /><Path d="M3 22v-6h6" {...p} /><Path d="M21 12a9 9 0 0 1-15 6.7L3 16" {...p} /></>)}
+      {name === 'magnet' && (<><Path d="M6 3v8a6 6 0 0 0 12 0V3" {...p} /><Path d="M6 3h4v8a2 2 0 0 0 4 0V3h4" {...p} /><Path d="M6 7h4M14 7h4" {...p} /></>)}
+      {name === 'equal' && (<><Path d="M5 9h14" {...p} /><Path d="M5 15h14" {...p} /></>)}
       {name === 'camera' && (<><Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" {...p} /><Circle cx="12" cy="13" r="4" {...p} /></>)}
       {name === 'bell' && (<><Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" {...p} /><Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" {...p} /></>)}
       {name === 'calendar' && (<><Rect x="3" y="4" width="18" height="18" rx="2" {...p} /><Path d="M16 2v4M8 2v4M3 10h18" {...p} /></>)}

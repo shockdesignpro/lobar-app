@@ -9,16 +9,16 @@ import type { Section } from '../lib/order/model';
 import { supabase } from '../lib/supabase';
 import { Button, Note, Sheet } from '../ui/components';
 import { confirmAsk } from '../ui/confirm';
-import { Icon, type IconName } from '../ui/Icon';
+import { Icon } from '../ui/Icon';
 import { Select } from '../ui/Select';
 import { useTheme } from '../ui/ThemeContext';
 import { Input } from './order/parts';
 
 const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
-const SECTIONS: { key: Section; label: string; icon: IconName }[] = [
-  { key: 'mahsulot', label: 'Xarajatlar', icon: 'box' },
-  { key: 'tikish', label: 'Tikish', icon: 'scissors' },
-  { key: 'ustanovka', label: 'O‘rnatish', icon: 'wrench' },
+const SECTIONS: { key: Section; label: string }[] = [
+  { key: 'mahsulot', label: 'Xarajatlar' },
+  { key: 'tikish', label: 'Tikish' },
+  { key: 'ustanovka', label: 'O‘rnatish' },
 ];
 let tmp = 0;
 
@@ -88,30 +88,18 @@ export function MacrosSheet({ visible, onClose, products, onSaved }: { visible: 
             <View style={{ height: 4, backgroundColor: color }} />
             <View style={{ padding: 12, gap: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Input accessibilityLabel="Makros nomi" placeholder="Makros nomi (masalan: Baget)" value={m.name} maxLength={40}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Input accessibilityLabel="Makros nomi" placeholder="Makros nomi" value={m.name} maxLength={40}
                     onChangeText={(v) => update(m.id, { name: v })} />
                 </View>
+                <View style={{ width: 112 }}>
+                  <Select compact accessibilityLabel="Bo‘lim" value={m.section} options={SECTIONS.map((x) => ({ key: x.key, label: x.label }))}
+                    onChange={(k) => setSection(m, k)} />
+                </View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Makrosni o‘chirish" onPress={() => removeMacro(m)}
-                  style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: t.redLight, alignItems: 'center', justifyContent: 'center' }}>
+                  style={{ width: 40, height: 44, borderRadius: 12, backgroundColor: t.redLight, alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="trash" color={t.red} size={18} />
                 </Pressable>
-              </View>
-
-              {/* Bo'lim tanlash */}
-              <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6 }}>
-                {SECTIONS.map((s) => {
-                  const on = m.section === s.key;
-                  const c = tone(s.key);
-                  return (
-                    <Pressable key={s.key} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => setSection(m, s.key)}
-                      style={{ flex: 1, minHeight: 38, borderRadius: 10, borderWidth: 1, borderColor: on ? c : t.border, backgroundColor: on ? c : 'transparent',
-                        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 4 }}>
-                      <Icon name={s.icon} color={on ? '#ffffff' : t.muted} size={14} />
-                      <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '700', color: on ? '#ffffff' : t.muted }}>{s.label}</Text>
-                    </Pressable>
-                  );
-                })}
               </View>
 
               {/* Mahsulotlar ro'yxati */}

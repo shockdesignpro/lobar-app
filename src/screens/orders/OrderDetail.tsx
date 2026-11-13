@@ -149,6 +149,11 @@ function PaymentBox({ o, access }: { o: OrderListItem; access: Access }) {
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
           <Input accessibilityLabel="To‘lov summasi" placeholder="Summa" keyboardType="decimal-pad" value={amount} invalid={bad}
             onChangeText={(v) => { setAmount(groupTyping(v)); setBad(false); }} style={{ flex: 1, backgroundColor: t.card }} />
+          {/* Magnit: qolgan summani (hech narsa to'lanmagan bo'lsa — umumiy summani) birdan yozadi */}
+          <Pressable accessibilityRole="button" accessibilityLabel={`Qolgan summani yozish: ${fmtN(rest)}`} onPress={() => { setAmount(fmtN(rest)); setBad(false); }}
+            style={({ pressed }) => ({ width: 44, minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: t.border, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+            <Icon name="magnet" color={t.red} size={22} strokeWidth={2.2} />
+          </Pressable>
           <Pressable accessibilityRole="button" disabled={busy} onPress={add}
             style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 16, borderRadius: 10, backgroundColor: t.primaryButton, flexDirection: 'row', alignItems: 'center', gap: 6, opacity: pressed || busy ? 0.8 : 1 })}>
             <Icon name="plus" color={t.primaryButtonText} size={16} strokeWidth={2.4} />

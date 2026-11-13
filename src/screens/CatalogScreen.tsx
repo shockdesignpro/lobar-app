@@ -210,7 +210,16 @@ function ProductSheet({ product, onClose, onSaved }: { product: Product | 'new' 
       <Select label="O‘lchov birligi" value={unit} options={unitOptions} onChange={setUnit} />
       {section !== 'mahsulot' && (
         <>
-          <Field label={`Ishchi stavkasi (1 ${unit} uchun, so‘m)`} placeholder="Masalan: 15 000" value={rate} onChangeText={(v) => setRate(groupTyping(v))} keyboardType="decimal-pad" />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Field label={`Ishchi stavkasi (1 ${unit} uchun, so‘m)`} placeholder="Masalan: 15 000" value={rate} onChangeText={(v) => setRate(groupTyping(v))} keyboardType="decimal-pad" />
+            </View>
+            {/* Narx bilan bir xil */}
+            <Pressable accessibilityRole="button" accessibilityLabel="Ishchi stavkasi narx bilan bir xil" onPress={() => setRate(price)}
+              style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 12, backgroundColor: t.tealLight, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+              <Icon name="equal" color={t.teal} size={22} strokeWidth={2.6} />
+            </Pressable>
+          </View>
           <Text style={{ fontSize: 12, color: t.muted, lineHeight: 17, marginTop: -4 }}>
             {section === 'tikish' ? 'Tikuvchiga “Dazmolandi” belgilanganda' : 'Ustaga “Pardani o‘rnatish” belgilanganda'} miqdor × stavka hisoblanadi. Bir necha kishi bo‘lsa, teng bo‘linadi.
           </Text>
