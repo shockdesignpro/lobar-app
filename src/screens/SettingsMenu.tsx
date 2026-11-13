@@ -12,10 +12,11 @@ import { confirmAsk } from '../ui/confirm';
 import { Icon, type IconName } from '../ui/Icon';
 import { useTheme } from '../ui/ThemeContext';
 import { Avatar } from '../ui/Avatar';
+import { useUnread } from '../lib/inbox';
 
-export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash }: {
+export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut, onOpenPayroll, onOpenExpenses, onOpenProfile, onOpenTrash, onOpenInbox }: {
   visible: boolean; onClose: () => void; access: Access; onOpenAdmin: () => void; onSignOut: () => void; onOpenPayroll: () => void; onOpenExpenses: () => void;
-  onOpenProfile: () => void; onOpenTrash: () => void;
+  onOpenProfile: () => void; onOpenTrash: () => void; onOpenInbox: () => void;
 }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -25,6 +26,7 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
   const [shown, setShown] = useState(visible);
   const [macrosOpen, setMacrosOpen] = useState(false);
   const snack = useSnack();
+  const unread = useUnread(null);
 
   useEffect(() => {
     if (visible) {
@@ -74,12 +76,13 @@ export function SettingsMenu({ visible, onClose, access, onOpenAdmin, onSignOut,
               {showAdmin && (
                 <Row icon="users" title="Admin panel" sub={isAdmin(access) ? 'Xodimlar, ruxsatlar, tarix' : 'Tikuvchi va ustalar'} onPress={() => go(onOpenAdmin)} />
               )}
-              {can(access, 'expenses.manage') && (
-                <Row icon="receipt" title="Xarajatlar" sub="Xarajatlar va sof foyda" onPress={() => go(onOpenExpenses)} />
-              )}
               {can(access, 'payroll.manage') ? (
                 <Row icon="wallet" title="Ish haqi" sub="Tikuvchi va ustalar hisobi" onPress={() => go(onOpenPayroll)} />
               ) : null}
+              {can(access, 'expenses.manage') && (
+                <Row icon="receipt" title="Xarajatlar" sub="Xarajatlar va sof foyda" onPress={() => go(onOpenExpenses)} />
+              )}
+              <Row icon="bell" title="Bildirishnomalar" sub={unread ? `${unread} ta yangi xabar` : 'Xabarlar va eslatma'} badge={unread} onPress={() => go(onOpenInbox)} />
               {can(access, 'catalog.edit') && (
                 <Row icon="zap" title="Makroslar" sub="Xarajatlarga bir bosishda qo‘shiladigan mahsulotlar" onPress={() => go(() => setTimeout(() => setMacrosOpen(true), 260))} />
               )}

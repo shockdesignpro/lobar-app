@@ -246,7 +246,8 @@ function Root() {
         onOpenExpenses={() => { setOrderFocus(null); setRoute({ name: 'expenses' }); }}
         onOpenPayroll={() => { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }} />
+        onOpenTrash={() => { setOrderFocus(null); setRoute({ name: 'trash' }); }}
+        onOpenInbox={() => { setOrderFocus(null); setRoute({ name: 'inbox' }); }} />
       {profileOpen && <ProfileSheet access={access} onClose={() => setProfileOpen(false)} onSaved={refreshAccess} />}
       {route.name === 'order' ? (
         <OrderEditor access={access} initial={route.draft} onExit={() => setRoute({ name: 'home' })} />
