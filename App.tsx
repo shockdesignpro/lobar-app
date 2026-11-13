@@ -11,6 +11,7 @@ import { prefetchCatalog } from './src/lib/catalog';
 import { ReceiptRenderer } from './src/ui/ReceiptRenderer';
 import { loadMacros } from './src/lib/order/draft';
 import { supabase } from './src/lib/supabase';
+import { onPushOpen, registerPush, type PushTarget } from './src/lib/push';
 import { AdminScreen } from './src/screens/admin/AdminScreen';
 import { CatalogScreen } from './src/screens/CatalogScreen';
 import { OrdersScreen } from './src/screens/orders/OrdersScreen';
@@ -87,6 +88,21 @@ function Root() {
     });
     return () => sub.subscription.unsubscribe();
   }, [refreshAccess]);
+
+  // Bildirishnomalar: telefon manzilini yozamiz (har kirishda — manzil yangilangan bo'lishi mumkin)
+  const staffId = access?.staff_id;
+  useEffect(() => { if (staffId) void registerPush(); }, [staffId]);
+
+  // Bildirishnoma bosilsa — kerakli sahifa (qulf ochilgandan keyin)
+  const [pushTarget, setPushTarget] = useState<PushTarget | null>(null);
+  useEffect(() => onPushOpen(setPushTarget), []);
+  useEffect(() => {
+    if (!pushTarget || phase !== 'app' || locked || !access) return;
+    setPushTarget(null); setMenuOpen(false);
+    if (pushTarget.screen === 'payroll') { setOrderFocus(null); setRoute({ name: 'payroll', staffId: null }); }
+    else if (pushTarget.orderId) { setFocusFrom('home'); setOrderFocus(pushTarget.orderId); setRoute({ name: 'soon', tab: 'orders' }); }
+    else { setOrderFocus(null); setFocusFrom(null); setRoute({ name: 'soon', tab: 'orders' }); }
+  }, [pushTarget, phase, locked, access]);
 
   // Internetsiz kiritilgan o'zgarish server tomonidan qabul qilinmasa — xabar beramiz
   const snack = useSnack();

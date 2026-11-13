@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STAFF_LOGIN_FUNCTION, SUPABASE_KEY, SUPABASE_URL } from '../config';
 import { clearUserData, isNetworkError, readAccessCopy, rememberCode, saveAccessCopy, setOnline } from './offline';
+import { unregisterPush } from './push';
 import { supabase } from './supabase';
 
 export type Perm = { allowed: boolean; limit: number | null };
@@ -121,6 +122,7 @@ export async function hasStoredSession() {
 }
 
 export async function signOut() {
+  await unregisterPush();
   await supabase.auth.signOut().catch(() => {});
   await clearUserData();
 }
