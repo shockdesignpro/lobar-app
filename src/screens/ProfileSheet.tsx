@@ -1,10 +1,11 @@
 // Shaxsiy profil: rasm, ism, kod va avtomatik qulflash — hammasi bitta sahifada
 import { useState } from 'react';
-import { Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { type Access } from '../lib/auth';
 import { pickAvatar } from '../lib/photos';
 import { saveProfile } from '../lib/profile';
 import { Avatar } from '../ui/Avatar';
+import { AvatarCamera } from '../ui/AvatarCamera';
 import { Button, Field, Note, Sheet } from '../ui/components';
 import { Icon, type IconName } from '../ui/Icon';
 import { useSnack } from '../ui/SnackContext';
@@ -21,6 +22,7 @@ export function ProfileSheet({ access, onClose, onSaved }: { access: Access; onC
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [cam, setCam] = useState(false);
 
   const shownUri = photo === undefined ? undefined : photo;
   const hasPhoto = photo === undefined ? !!access.avatar : !!photo;
@@ -28,6 +30,8 @@ export function ProfileSheet({ access, onClose, onSaved }: { access: Access; onC
 
   const pick = (src: 'camera' | 'library') => {
     setErr('');
+    // Telefonda: o'zimizning kamera oynasi (chap pastda galereya)
+    if (src === 'camera' && Platform.OS !== 'web') { setCam(true); return; }
     pickAvatar(src).then((p) => { if (p) setPhoto(p); }).catch((e: Error) => setErr(e.message));
   };
   const save = async () => {
@@ -66,6 +70,7 @@ export function ProfileSheet({ access, onClose, onSaved }: { access: Access; onC
 
       <View style={{ height: 1, backgroundColor: t.divider, marginVertical: 4 }} />
       <CodeLockForm access={access} />
+      {cam && <AvatarCamera onClose={() => setCam(false)} onPicked={(d) => { setCam(false); setPhoto(d); }} onError={(m) => { setCam(false); setErr(m); }} />}
     </Sheet>
   );
 }

@@ -69,6 +69,14 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Profil rasmini olish uchun kameraga ruxsat kerak.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       "./plugins/withAbis.js"
     ],
     "runtimeVersion": {

@@ -28,7 +28,17 @@ export async function pickPhotos(source: 'library' | 'camera'): Promise<string[]
   return out;
 }
 
-/** Profil rasmi: kvadrat qilib qirqiladi (telefon o'zi qirqish oynasini ko'rsatadi), 400×400 */
+/** Rasmni o'rtasidan kvadrat qilib qirqib, 400×400 JPEG qiladi */
+export async function squareAvatar(uri: string, width: number, height: number): Promise<string | null> {
+  const side = Math.min(width, height);
+  const r = await manipulateAsync(uri, [
+    { crop: { originX: Math.floor((width - side) / 2), originY: Math.floor((height - side) / 2), width: side, height: side } },
+    { resize: { width: 400, height: 400 } },
+  ], { compress: 0.8, format: SaveFormat.JPEG, base64: true });
+  return r.base64 ? `data:image/jpeg;base64,${r.base64}` : null;
+}
+
+/** Profil rasmi: kamera yoki galereya (telefon o'zi qirqish oynasini ko'rsatadi), 400×400 */
 export async function pickAvatar(source: 'library' | 'camera'): Promise<string | null> {
   let res: ImagePicker.ImagePickerResult;
   const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1 };
@@ -41,10 +51,5 @@ export async function pickAvatar(source: 'library' | 'camera'): Promise<string |
   }
   if (res.canceled || !res.assets[0]) return null;
   const a = res.assets[0];
-  const side = Math.min(a.width, a.height);
-  const r = await manipulateAsync(a.uri, [
-    { crop: { originX: Math.floor((a.width - side) / 2), originY: Math.floor((a.height - side) / 2), width: side, height: side } },
-    { resize: { width: 400, height: 400 } },
-  ], { compress: 0.8, format: SaveFormat.JPEG, base64: true });
-  return r.base64 ? `data:image/jpeg;base64,${r.base64}` : null;
+  return squareAvatar(a.uri, a.width, a.height);
 }
