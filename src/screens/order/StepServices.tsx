@@ -63,21 +63,21 @@ export function StepServices({ draft, setDraft, catalog, target, setTarget, macr
           onChange={(k) => setTarget(k === '__general' ? null : k)} />
         <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, lineHeight: 17 }}>{room ? roomDimensions(room) : 'Xonaga biriktirilmagan xarajatlar'}</Text>
         <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>Shu xona jami: {fmtSom(roomTotal(draft, target.roomId))}</Text>
+        {/* Deraza/eshik tanlash — xona kartasi ichida */}
+        {tabs.length > 0 && (
+          <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+            {tabs.map((tb) => {
+              const on = (tb.id ?? '') === (target.openingId ?? '');
+              return (
+                <Pressable key={tb.id ?? 'general'} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setTarget(target.roomId, tb.id)}
+                  style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1, borderColor: on ? '#ffffff' : 'rgba(255,255,255,0.55)', backgroundColor: on ? '#ffffff' : 'transparent', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: on ? '#0b6a52' : '#ffffff' }}>{tb.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
-
-      {tabs.length > 0 && (
-        <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {tabs.map((tb) => {
-            const on = (tb.id ?? '') === (target.openingId ?? '');
-            return (
-              <Pressable key={tb.id ?? 'general'} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setTarget(target.roomId, tb.id)}
-                style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: on ? t.teal : t.border, backgroundColor: on ? t.primaryButton : t.card, justifyContent: 'center' }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: on ? t.primaryButtonText : t.text }}>{tb.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
 
       {(['mahsulot', 'tikish', 'ustanovka'] as Section[]).map((section) => {
         const meta = META[section];
